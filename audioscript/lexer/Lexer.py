@@ -1,11 +1,3 @@
-
-
-###############################################################################
-#                                                                             #
-#  LEXER                                                                      #
-#                                                                             #
-###############################################################################
-
 # Token types
 #
 # EOF (end-of-file) token is used to indicate that
@@ -84,19 +76,15 @@ class Lexer(object):
         else:
             self.current_char = self.text[self.pos]
 
-    def peek(self):
-        peek_pos = self.pos + 1
-        if peek_pos > len(self.text) - 1:
-            return None
-        else:
-            return self.text[peek_pos]
-
     def skip_whitespace(self):
+        """
+        Skip whitespace in text.
+        """
         while self.current_char is not None and self.current_char.isspace():
             self.advance()
 
     def number(self):
-        """Return a (multidigit) integer or float consumed from the input."""
+        """Return a number token that contains float or integer value."""
         result = ''
         while self.current_char is not None and self.current_char.isdigit():
             result += self.current_char
@@ -129,9 +117,8 @@ class Lexer(object):
         return token
 
     def get_next_token(self):
-        """Lexical analyzer (also known as scanner or tokenizer)
-        This method is responsible for breaking a sentence
-        apart into tokens. One token at a time.
+        """
+        Return next token from text.
         """
         while self.current_char is not None:
 
