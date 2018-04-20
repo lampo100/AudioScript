@@ -21,10 +21,10 @@ from pars.Parser import Parser
 class NodeVisitor(object):
     def visit(self, node):
         method_name = 'visit_' + type(node).__name__
-        visitor = getattr(self, method_name, self.generic_visit)
+        visitor = getattr(self, method_name, self.default_visit)
         return visitor(node)
 
-    def generic_visit(self, node):
+    def default_visit(self, node):
         raise Exception('No visit_{} method'.format(type(node).__name__))
 
 

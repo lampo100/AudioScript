@@ -1,4 +1,5 @@
 import lexer
+
 (NUMBER,
  PLUS, MINUS,
  MUL, DIV,
@@ -15,13 +16,11 @@ import lexer
  'ID', 'ASSIGN',
  'SEMI', 'EOF'
 )
-###############################################################################
-#                                                                             #
-#  PARSER                                                                     #
-#                                                                             #
-###############################################################################
 
 class AST(object):
+    """
+    Base class for all AbstractSyntaxTree node types.
+    """
     pass
 
 class Program(AST):
@@ -42,23 +41,42 @@ class Num(AST):
 
 
 class UnaryOp(AST):
-    def __init__(self, op, expr):
+    """
+    Represents unary operation(plus and minus sign) node.
+    """
+    def __init__(self, op, numeric_value):
+        """
+        Unary operation node.
+        :param op: Unary operation (plus or minus sign) token.
+        :param expr:
+        """
         self.token = self.op = op
-        self.expr = expr
+        self.val = numeric_value
 
 
 class StatList(AST):
+    """
+    Represents list of statements.
+    """
     def __init__(self, statements):
+        """
+        List of statements AST node.
+        :param statements: list of statement nodes.
+        """
         self.statements = statements
-
-class Compound(AST):
-    """Represents a 'BEGIN ... END' block"""
-    def __init__(self):
-        self.children = []
 
 
 class Assign(AST):
+    """
+    Represents assignment operation.
+    """
     def __init__(self, left, op, right):
+        """
+        Assign operation node.
+        :param left: lvalue
+        :param op: assignment token
+        :param right: rvalue
+        """
         self.left = left
         self.token = self.op = op
         self.right = right
@@ -67,11 +85,18 @@ class Assign(AST):
 class Var(AST):
     """The Var node is constructed out of ID token."""
     def __init__(self, token):
+        """
+        Variable node.
+        :param token: ID token representing variable identifier.
+        """
         self.token = token
         self.value = token.value
 
 
 class NoOp(AST):
+    """
+    Node representing empty production(nothing happens)
+    """
     pass
 
 
@@ -95,26 +120,14 @@ class Parser(object):
             self.error()
 
     def program(self):
-        """program : compound_statement DOT"""
+        """program = statement-list"""
         stat_list = self.statement_list()
         node = Program(stat_list)
         return node
 
-    def compound_statement(self):
-        """
-        compound_statement: BEGIN statement_list END
-        """
-        nodes = self.statement_list()
-
-        root = Compound()
-        for node in nodes:
-            root.children.append(node)
-
-        return root
-
     def statement_list(self):
         """
-        statement_list : {statement}*
+        statement_list : {statement}*\
         """
         node = self.statement()
 
@@ -127,9 +140,6 @@ class Parser(object):
 
     def statement(self):
         """
-        statement : assignment-statement, semi
-                  | numeric-value, semi
-                  | empty TODO DODAĆ WYWOŁANIA FUNKCJI I ZWYKŁE OBLICZENIA
         """
         if self.current_token.type == ID:
             node = self.assignment_statement()
@@ -144,7 +154,6 @@ class Parser(object):
     def assignment_statement(self):
         """
         assignment-statement = variable, assign, (numeric-value | string-value | nill) ;
-        assignment_statement : variable ASSIGN expr
         """
         left = self.variable()
         token = self.current_token
@@ -155,7 +164,7 @@ class Parser(object):
 
     def variable(self):
         """
-        variable : ID
+        variable = identifier
         """
         node = Var(self.current_token)
         self.eat(ID)
@@ -168,7 +177,6 @@ class Parser(object):
     def numeric_value(self):
         """
         numeric-value = term, {math-sign, term} ;
-        expr : term ((PLUS | MINUS) term)*
         """
         node = self.term()
 
@@ -184,7 +192,7 @@ class Parser(object):
         return node
 
     def term(self):
-        """term : factor ((MUL | DIV) factor)*"""
+        """term : factor {binary-math-operator, factor}"""
         node = self.factor()
 
         while self.current_token.type in (MUL, DIV):
@@ -199,11 +207,12 @@ class Parser(object):
         return node
 
     def factor(self):
-        """factor : PLUS factor
-                  | MINUS factor
-                  | INTEGER
-                  | LPAREN expr RPAREN
-                  | variable
+        """factor = unary-operator, factor
+                    | integer
+                    | float
+                    | variable
+                    | function-call
+                    | lparen, numeric-value, rparen ;
         """
         token = self.current_token
         if token.type == PLUS:
@@ -228,23 +237,8 @@ class Parser(object):
 
     def parse(self):
         """
-        program : compound_statement DOT
-        compound_statement : BEGIN statement_list END
-        statement_list : statement
-                       | statement SEMI statement_list
-        statement : compound_statement
-                  | assignment_statement
-                  | empty
-        assignment_statement : variable ASSIGN expr
-        empty :
-        expr: term ((PLUS | MINUS) term)*
-        term: factor ((MUL | DIV) factor)*
-        factor : PLUS factor
-               | MINUS factor
-               | INTEGER
-               | LPAREN expr RPAREN
-               | variable
-        variable: ID
+        Parse program and return root node.
+        :return:
         """
         node = self.program()
         if self.current_token.type != EOF:
