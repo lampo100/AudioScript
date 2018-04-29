@@ -1,0 +1,178 @@
+declaration-block = "Declarations", whitespace, '{', types-declaration, functions-declarations, whitespace, '}' ;
+
+types-declaration = "Types:", custom-type-list ;
+
+custom-type-list = {custom-type, ','}, [custom-type] ;
+
+custom-type = name ;
+
+functions-declarations = "Functions", whitespace, '{', {module-block}, '}' ;
+
+module-block = name, '{', {extern-function-declaration}, '}' ;
+
+extern-function-declaration = custom-type, whitespace, name, whitespace, '(', extern-args-list, ')', whitespace, ';', ;
+
+extern-args = {type-specifier, [',', type-specifier]} ;
+
+block = {stat} ;           # BLOCK OF STATEMENTS
+
+stat =  name, '=', exp, ';'  |
+		function-call, ';' |  
+		while, '(', cond-exp, ')', '{', block, '}' | 
+		if, '(', cond-exp, ')', '{', block, '}', [else, '{', block, '}'] | 
+		'{', block, '}' ;
+
+function = 'function', whitespace, name, function-body ;
+
+function-body = '(', [name-list], ')', '{', block, '}' ; 
+
+var-declaration = type-specifier, {name [, ( "=", function-call | string-value | numeric-value | null-value ) ] } ;
+
+type-specifier = custom-type | "number" | "string" ;
+
+function-call = name, args ;
+
+args = '(', exp-list, ')'
+
+exp-list = {exp, ','}, [exp]
+
+exp = null | numeric-value | string-value | function | funtioncall | exp, binary-math-operator, exp | unary-operator exp | name-list; ### Expression
+
+cond-exp = exp, binary-logic-operator, exp ; ### Conditional expression
+
+name = alphabetic-character, { alphabetic-character | digit } ;
+
+name-list = {name, ','}, [name]
+########################################################## PROGRAM ##########################################################
+
+program = declarations, statement-list ;
+
+########################################################## DECLARATIONS #####################################################
+
+declarations = empty | dec, lcurly, types-declaration, modules-declaration, rcurly ; 
+
+types-declaration = types, empty | identifier, {comma, identifier} ; 
+
+modules-declaration = empty | { identifier, lcurly, functions-declarations, rcurly } ;
+
+functions-declarations = empty | { declared-function, semi } ;
+
+declared-function = type-spec, identifier, lparen, declared-args, rparen ;
+
+declared-args = empty | type-spec, {comma, type-spec} ;
+
+type-spec = number | string | identifier ;
+
+var-type = type-spec | var ;
+
+var = "var" ;
+
+types = "Types" ;
+
+number = "number" ;
+
+string = "string" ;
+
+dec = "Declarations" ;
+
+comma = "," ;
+
+########################################################### CODE BLOCK ######################################################
+################# blocks of code, assignment to variables, function calls, etc. #############################################
+
+statement-list = {statement}* ;
+
+statement = block-statement 
+	    | assignment-statement, semi 
+	    | function-call 
+	    | numeric-value 
+	    | string-value 
+	    | while-statement 
+	    | if-statement 
+	    | empty ;
+
+block-statement = lcurly, statement-list, rcurly ;
+
+assignment-statement = variable, assign, (numeric-value | string-value | nill | function-call) ;
+
+function-call = variable, lparen, {variable | numeric-value | string-value}, rparen, semi;
+
+variable-declaration = var-type, identifier, {comma, identifier} ;
+
+var-list = identifier, {comma, identifier} ;
+
+function-declaration = identifier, lparen, var-list, rparen, function-block ;
+
+function-block = lcurly, statement-list, rcurly ;
+
+nill = SOME_VALUE ;
+
+empty = ;
+
+variable = indentifier ;
+
+lcurly = "{" ;
+
+rcurly = "}" ;
+
+semi = ";" ;
+
+assign = "=" ;
+
+########################################################### CONDITIONALS ##############################################
+
+if-stat = if, lparen, cond-value, rparen, (statement | block-statement), [else, (statement | block-statement)] ;
+
+while-stat = while, lparen, cond-value, rparen, (statement | block-statement) ;
+
+if = "if" ;
+
+else = "else" ;
+
+while = "while" ;
+
+cond-value = cond-term, {binary-logic-operator1, cond-term} ;
+
+cond-term = cond | lparen, cond-value, rparen ;
+
+cond = numeric-value, binary-logic-operator1, numeric-value ;
+
+########################################################### MATH ######################################################
+############## floats and integers and variables
+
+string-value = '"' , { all-characters - '"' }, '"' ;
+
+numeric-value = term, {math-sign, term} ;
+
+term = factor, {binary-math-operator, factor} ;
+
+factor = unary-operator, factor | integer | float | variable | function-call | lparen, numeric-value, rparen ;
+
+integer = digit, { digit | zero} ;
+
+float = digit, { digit | zero }, ".", ( digit | zero ), {digit | zero} ; 
+
+math-sign = "+" | "-" ;
+
+binary-operator = "*" | "/" | "%" ;
+
+
+#######################################################################################################################
+
+binary-logic-operator1 = "<" | "<=" | ">" | ">=" |
+  "==" | "!=" ;
+
+binary-logic-operator2 = "and" | "or" ;
+
+alphabetic-character = "A" | "B" | "C" | "D" | "E" | "F" | "G"
+                      | "H" | "I" | "J" | "K" | "L" | "M" | "N"
+                      | "O" | "P" | "Q" | "R" | "S" | "T" | "U"
+                      | "V" | "W" | "X" | "Y" | "Z" ;
+
+digit = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+
+zero = "0" ;
+
+lparen = "(" ;
+
+rparen = ")" ;
