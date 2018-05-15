@@ -1,17 +1,58 @@
 from collections import OrderedDict
-from interpreter.Interpreter import Interpreter
-from lexer.Lexer import Lexer
+from interpreter.Interpreter import Interpreter, NodeVisitor
+from lexer.Lexer import Lexer, get_tokens
+
+globals().update(get_tokens())
+
+class Symbol(object):
+    def __init__(self, name, type=None):
+        self.name = name
+        self.type = type
 
 
+class VarSymbol(Symbol):
+    def __init__(self, name, type):
+        super(VarSymbol, self).__init__(name, type)
 
-from spi import (
-    Lexer,
-    Parser,
-    NodeVisitor,
-    BuiltinTypeSymbol,
-    VarSymbol,
-    ProcedureSymbol
-)
+    def __str__(self):
+        return "<{class_name}(name='{name}', type='{type}')>".format(
+            class_name=self.__class__.__name__,
+            name=self.name,
+            type=self.type,
+        )
+
+    __repr__ = __str__
+
+
+class BuiltinTypeSymbol(Symbol):
+    def __init__(self, name):
+        super(BuiltinTypeSymbol, self).__init__(name)
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return "<{class_name}(name='{name}')>".format(
+            class_name=self.__class__.__name__,
+            name=self.name,
+        )
+
+
+class ProcedureSymbol(Symbol):
+    def __init__(self, name, params=None):
+        super(ProcedureSymbol, self).__init__(name)
+        # a list of formal parameters
+        self.params = params if params is not None else []
+
+    def __str__(self):
+        return '<{class_name}(name={name}, parameters={params})>'.format(
+            class_name=self.__class__.__name__,
+            name=self.name,
+            params=self.params,
+        )
+
+    __repr__ = __str__
+
 
 
 class ScopedSymbolTable(object):
@@ -22,8 +63,8 @@ class ScopedSymbolTable(object):
         self.enclosing_scope = enclosing_scope
 
     def _init_builtins(self):
-        self.insert(BuiltinTypeSymbol('INTEGER'))
-        self.insert(BuiltinTypeSymbol('REAL'))
+        self.insert(BuiltinTypeSymbol('NUMBER'))
+        self.insert(BuiltinTypeSymbol('STRING'))
 
     def __str__(self):
         h1 = 'SCOPE (SCOPED SYMBOL TABLE)'
@@ -73,10 +114,12 @@ class SemanticAnalyzer(NodeVisitor):
     def __init__(self):
         self.current_scope = None
 
-    def visit_Block(self, node):
-        for declaration in node.declarations:
-            self.visit(declaration)
-        self.visit(node.compound_statement)
+    def visit_UnaryOp(self, node):
+        op = node.op.type
+        if op == PLUS:
+            return +self.visit(node.expr)
+        elif op == MINUS:
+            return -self.visit(node.expr)
 
     def visit_Program(self, node):
         print('ENTER scope: global')
@@ -89,19 +132,16 @@ class SemanticAnalyzer(NodeVisitor):
         self.current_scope = global_scope
 
         # visit subtree
-        self.visit(node.block)
+        self.visit(node.root)
 
         print(global_scope)
 
         self.current_scope = self.current_scope.enclosing_scope
         print('LEAVE scope: global')
 
-    def visit_Compound(self, node):
-        for child in node.children:
-            self.visit(child)
-
-    def visit_NoOp(self, node):
-        pass
+    def visit_StatList(self, node):
+        for statement in node.statements:
+            self.visit(statement)
 
     def visit_BinOp(self, node):
         self.visit(node.left)
@@ -158,7 +198,17 @@ class SemanticAnalyzer(NodeVisitor):
         # right-hand side
         self.visit(node.right)
         # left-hand side
-        self.visit(node.left)
+
+        node = node.left
+        type_name = node.type_node.value
+        type_symbol = self.current_scope.lookup(type_name)
+        var_name = node.var_node.value
+        var_symbol = VarSymbol(var_name, type_symbol)
+        if self.current_scope.lookup(var_name, current_scope_only=True):
+            raise Exception(
+                "Error: Duplicate identifier '%s' found" % var_name
+            )
+        self.current_scope.insert(var_symbol)
 
     def visit_Var(self, node):
         var_name = node.value
@@ -168,6 +218,8 @@ class SemanticAnalyzer(NodeVisitor):
                 "Error: Symbol(identifier) not found '%s'" % var_name
             )
 
+    def visit_NoOp(self, node):
+        pass
 
 if __name__ == '__main__':
     import sys

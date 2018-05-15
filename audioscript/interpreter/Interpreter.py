@@ -53,10 +53,6 @@ class Interpreter(NodeVisitor):
         elif op == MINUS:
             return -self.visit(node.expr)
 
-    def visit_Compound(self, node):
-        for child in node.children:
-            self.visit(child)
-
     def visit_StatList(self, node):
         for statement in node.statements:
             self.visit(statement)
