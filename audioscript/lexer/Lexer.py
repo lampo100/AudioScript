@@ -2,23 +2,25 @@
 #
 # EOF (end-of-file) token is used to indicate that
 # there is no more input left for lexical analysis
-(NUMBER,
- PLUS, MINUS,
- MUL, DIV,
- LPAREN, RPAREN,
- LCURLY, RCURLY,
- ID, ASSIGN,
- SEMI, EOF) = \
-(
- 'NUMBER',
- 'PLUS', 'MINUS',
- 'MUL', 'DIV',
- '(', ')',
- '{', '}',
- 'ID', 'ASSIGN',
- 'SEMI', 'EOF'
-)
+tokens = {'NUMBER':'NUMBER',
+          'PLUS':'PLUS',
+          'MINUS':'MINUS',
+          'MUL':'MUL',
+          'DIV':'DIV',
+          'LPAREN':'(',
+          'RPAREN':')',
+          'LCURLY':'{',
+          'RCURLY':'}',
+          'ID':'ID',
+          'ASSIGN':'ASSIGN',
+          'SEMI':'SEMI',
+          'EOF':'EOF'
+}
 
+def get_tokens():
+    return tokens
+
+globals().update(get_tokens())
 
 class Token(object):
     """
@@ -82,6 +84,14 @@ class Lexer(object):
         """
         while self.current_char is not None and self.current_char.isspace():
             self.advance()
+
+    def skip_comment(self):
+        """
+        Skip every character in line after comment sign '#'.
+        """
+        while self.current_char != '\n':
+            self.advance()
+        self.advance()
 
     def number(self):
         """Return a number token that contains float or integer value."""
@@ -163,6 +173,10 @@ class Lexer(object):
             if self.current_char == ')':
                 self.advance()
                 return Token(RPAREN, ')')
+
+            if self.current_char == '#':
+                self.advance()
+                self.skip_comment()
 
             self.error()
 
