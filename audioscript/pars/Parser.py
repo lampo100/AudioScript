@@ -1,21 +1,6 @@
-import lexer
+from lexer.Lexer import get_tokens
 
-(NUMBER,
- PLUS, MINUS,
- MUL, DIV,
- LPAREN, RPAREN,
- LCURLY, RCURLY,
- ID, ASSIGN,
- SEMI, EOF) = \
-(
- 'NUMBER',
- 'PLUS', 'MINUS',
- 'MUL', 'DIV',
- '(', ')',
- '{', '}',
- 'ID', 'ASSIGN',
- 'SEMI', 'EOF'
-)
+globals().update(get_tokens())
 
 class AST(object):
     """
@@ -23,15 +8,23 @@ class AST(object):
     """
     pass
 
+
 class Program(AST):
     def __init__(self, root):
         self.root = root
+
 
 class BinOp(AST):
     def __init__(self, left, op, right):
         self.left = left
         self.token = self.op = op
         self.right = right
+
+
+class String(AST):
+    def __init__(self, token):
+        self.token = token
+        self.value = token.value
 
 
 class Num(AST):
@@ -48,7 +41,7 @@ class UnaryOp(AST):
         """
         Unary operation node.
         :param op: Unary operation (plus or minus sign) token.
-        :param expr:
+        :param numeric_value: numeric value
         """
         self.token = self.op = op
         self.val = numeric_value
@@ -106,8 +99,8 @@ class Parser(object):
         # set current token to the first token taken from the input
         self.current_token = self.lexer.get_next_token()
 
-    def error(self):
-        raise Exception('Invalid syntax')
+    def error(self, expected=None):
+        raise Exception('Invalid syntax, expected {} and got {} instead.'.format(expected, self.current_token.type))
 
     def eat(self, token_type):
         # compare the current token type with the passed token
@@ -117,7 +110,7 @@ class Parser(object):
         if self.current_token.type == token_type:
             self.current_token = self.lexer.get_next_token()
         else:
-            self.error()
+            self.error(token_type)
 
     def program(self):
         """program = statement-list"""
@@ -140,12 +133,23 @@ class Parser(object):
 
     def statement(self):
         """
+        statement = block-statement
+	    | assignment-statement, semi
+	    | function-call, semi
+	    | numeric-value, semi
+	    | string-value, semi
+	    | while-statement
+	    | if-statement
+	    | empty ;
         """
         if self.current_token.type == ID:
             node = self.assignment_statement()
             self.eat(SEMI)
         elif self.current_token.type == PLUS or self.current_token.type == MINUS or self.current_token.type == NUMBER or self.current_token.type == LPAREN:
             node = self.numeric_value()
+            self.eat(SEMI)
+        elif self.current_token.type == STRING:
+            node = self.string_value()
             self.eat(SEMI)
         else:
             node = self.empty()
@@ -158,9 +162,22 @@ class Parser(object):
         left = self.variable()
         token = self.current_token
         self.eat(ASSIGN)
-        right = self.numeric_value()
+        if self.current_token.type == PLUS or self.current_token.type == MINUS or self.current_token.type == NUMBER or self.current_token.type == LPAREN:
+            right = self.numeric_value()
+        else:
+            right = self.string_value()
+
         node = Assign(left, token, right)
         return node
+
+    def string_value(self):
+        token = self.current_token
+        if token.type == STRING:
+            self.eat(STRING)
+            return String(token)
+        elif token.type == ID:
+            self.eat(ID)
+            return Var(token)
 
     def variable(self):
         """
@@ -173,6 +190,23 @@ class Parser(object):
     def empty(self):
         """An empty production"""
         return NoOp()
+
+    ############# LOGIC ############
+
+
+    def logical_factor(self):
+        """
+        logical-factor = (numeric-value | variable), lower-logical-operator, (numeric-value | variable)
+        | lparen, logical-value, rparen ;
+        """
+        #token = self.current_token
+        #if token.type == NUMBER:
+        #    self.eat(NUMBER)
+        #   return LogicalOp(token, self.)
+
+
+    ############# MATH #############
+
 
     def numeric_value(self):
         """
@@ -205,6 +239,7 @@ class Parser(object):
             node = BinOp(left=node, op=token, right=self.factor())
 
         return node
+
 
     def factor(self):
         """factor = unary-operator, factor
