@@ -36,6 +36,9 @@ class Interpreter(NodeVisitor):
         self.parser = parser
 
     def visit_Program(self, node):
+        """
+        program = declarations, statement-list ;
+        """
         self.visit(node.root)
 
     def visit_BinOp(self, node):
