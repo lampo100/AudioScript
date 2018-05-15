@@ -1,22 +1,8 @@
-from lexer.Lexer import Lexer
+from lexer.Lexer import Lexer, get_tokens
 from pars.Parser import Parser
 
-(NUMBER,
- PLUS, MINUS,
- MUL, DIV,
- LPAREN, RPAREN,
- LCURLY, RCURLY,
- ID, ASSIGN,
- SEMI, EOF) = \
-(
- 'NUMBER',
- 'PLUS', 'MINUS',
- 'MUL', 'DIV',
- '(', ')',
- '{', '}',
- 'ID', 'ASSIGN',
- 'SEMI', 'EOF'
-)
+
+globals().update(get_tokens())
 
 class NodeVisitor(object):
     def visit(self, node):
@@ -55,6 +41,9 @@ class Interpreter(NodeVisitor):
             return self.visit(node.left) / self.visit(node.right)
 
     def visit_Num(self, node):
+        return node.value
+
+    def visit_String(self, node):
         return node.value
 
     def visit_UnaryOp(self, node):
