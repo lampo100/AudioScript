@@ -3,6 +3,7 @@
 # EOF (end-of-file) token is used to indicate that
 # there is no more input left for lexical analysis
 tokens = {'NUMBER':'NUMBER',
+          'STRING':'STRING',
           'PLUS':'PLUS',
           'MINUS':'MINUS',
           'MUL':'MUL',
@@ -14,7 +15,8 @@ tokens = {'NUMBER':'NUMBER',
           'ID':'ID',
           'ASSIGN':'ASSIGN',
           'SEMI':'SEMI',
-          'EOF':'EOF'
+          'EOF':'EOF',
+          'COMMA':','
 }
 
 def get_tokens():
@@ -50,7 +52,12 @@ class Token(object):
         return self.__str__()
 
 # RESERVED KEYWORDS THAT CANNOT BE USED AS IDENTIFIERS
-RESERVED_KEYWORDS = {}
+RESERVED_KEYWORDS = {
+    'if': Token('IF', 'if'),
+    'else': Token('ELSE', 'else'),
+    'and': Token('AND', 'and'),
+    'or': Token('OR', 'or')
+}
 
 
 class Lexer(object):
@@ -93,6 +100,17 @@ class Lexer(object):
             self.advance()
         self.advance()
 
+    def string(self):
+        """Return a string token"""
+        result = ''
+        self.advance()
+        while self.current_char is not '\"':
+            result += self.current_char
+            self.advance()
+
+        self.advance()
+        return Token('STRING', result)
+
     def number(self):
         """Return a number token that contains float or integer value."""
         result = ''
@@ -123,7 +141,7 @@ class Lexer(object):
             result += self.current_char
             self.advance()
 
-        token = RESERVED_KEYWORDS.get(result, Token(ID, result))
+        token = RESERVED_KEYWORDS.get(result.lower(), Token(ID, result))
         return token
 
     def get_next_token(self):
@@ -145,6 +163,10 @@ class Lexer(object):
             if self.current_char == '=':
                 self.advance()
                 return Token(ASSIGN, '=')
+
+            if self.current_char == ',':
+                self.advance()
+                return Token(COMMA, ',')
 
             if self.current_char == ';':
                 self.advance()
@@ -174,6 +196,9 @@ class Lexer(object):
                 self.advance()
                 return Token(RPAREN, ')')
 
+            if self.current_char == '\"':
+                return self.string()
+
             if self.current_char == '#':
                 self.advance()
                 self.skip_comment()
@@ -181,4 +206,3 @@ class Lexer(object):
             self.error()
 
         return Token(EOF, None)
-
