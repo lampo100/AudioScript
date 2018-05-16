@@ -16,7 +16,17 @@ tokens = {'NUMBER':'NUMBER',
           'ASSIGN':'ASSIGN',
           'SEMI':'SEMI',
           'EOF':'EOF',
-          'COMMA':','
+          'COMMA':',',
+          'EQ':'==',
+          'NEQ':'!=',
+          'LT':'<',
+          'MT':'>',
+          'LEQT':'<=',
+          'MEQT':'>=',
+          'IF':'IF',
+          'ELSE':'ELSE',
+          'OR':'OR',
+          'AND':'AND'
 }
 
 def get_tokens():
@@ -53,10 +63,10 @@ class Token(object):
 
 # RESERVED KEYWORDS THAT CANNOT BE USED AS IDENTIFIERS
 RESERVED_KEYWORDS = {
-    'if': Token('IF', 'if'),
-    'else': Token('ELSE', 'else'),
-    'and': Token('AND', 'and'),
-    'or': Token('OR', 'or')
+    'if': Token('IF', 'IF'),
+    'else': Token('ELSE', 'ELSE'),
+    'and': Token('AND', 'AND'),
+    'or': Token('OR', 'OR')
 }
 
 
@@ -162,7 +172,35 @@ class Lexer(object):
 
             if self.current_char == '=':
                 self.advance()
-                return Token(ASSIGN, '=')
+                if self.current_char == '=':
+                    self.advance()
+                    return Token(EQUAL, '==')
+                else:
+                    return Token(ASSIGN, '=')
+
+            if self.current_char == '!':
+                self.advance()
+                if self.current_char == '=':
+                    self.advance()
+                    return Token(NEQ, '!=')
+                else:
+                    self.error()
+
+            if self.current_char == '<':
+                self.advance()
+                if self.current_char == '=':
+                    self.advance()
+                    return Token(LEQT, '<=')
+                else:
+                    return Token(LT, '<')
+
+            if self.current_char == '>':
+                self.advance()
+                if self.current_char == '=':
+                    self.advance()
+                    return Token(MEQT, '>=')
+                else:
+                    return Token(MT, '>')
 
             if self.current_char == ',':
                 self.advance()

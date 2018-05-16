@@ -86,6 +86,13 @@ class Var(AST):
         self.value = token.value
 
 
+class ConditionalVal(AST):
+    def __init__(self, left, op, right):
+        self.left = left
+        self.op = op
+        self.right = right
+
+
 class NoOp(AST):
     """
     Node representing empty production(nothing happens)
@@ -145,6 +152,10 @@ class Parser(object):
         if self.current_token.type == ID:
             node = self.assignment_statement()
             self.eat(SEMI)
+        elif self.current_token.type == IF:
+            self.eat(IF)
+            node = self.cond_expr()
+            self.eat(SEMI)
         elif self.current_token.type == PLUS or self.current_token.type == MINUS or self.current_token.type == NUMBER or self.current_token.type == LPAREN:
             node = self.numeric_value()
             self.eat(SEMI)
@@ -192,15 +203,47 @@ class Parser(object):
         return NoOp()
 
     ############# LOGIC ############
-    def logical_factor(self):
+    def cond_expr(self):
         """
-        logical-factor = (numeric-value | variable), lower-logical-operator, (numeric-value | variable)
-        | lparen, logical-value, rparen ;
+        cond-exp = cond-value, {higher-logic-operator, cond-value} ;
         """
-        #token = self.current_token
-        #if token.type == NUMBER:
-        #    self.eat(NUMBER)
-        #   return LogicalOp(token, self.)
+        node = self.cond_value()
+
+        while self.current_token.type in (AND, OR):
+            token = self.current_token
+            if token.type == AND:
+                self.eat(AND)
+                node = ConditionalVal(node, token, self.cond_value())
+            elif token.type == OR:
+                self.eat(OR)
+                node = ConditionalVal(node, token, self.cond_value())
+
+        return node
+
+    def cond_value(self):
+        """
+        cond-value = numeric-value, lower-logic-operator, numeric-value ;
+        """
+        lvalue = self.numeric_value()
+        token = self.current_token
+
+        if token.type == EQ:
+            self.eat(EQ)
+        elif token.type == NEQ:
+            self.eat(NEQ)
+        elif token.type == LT:
+            self.eat(LT)
+        elif token.type == MT:
+            self.eat(MT)
+        elif token.type == LEQT:
+            self.eat(LEQT)
+        elif token.type == MEQT:
+            self.eat(MEQT)
+        else:
+            self.error("CONDITIONAL-TOKEN")
+
+        rvalue = self.numeric_value()
+        return ConditionalVal(lvalue, token, rvalue)
 
     ############# MATH #############
     def numeric_value(self):

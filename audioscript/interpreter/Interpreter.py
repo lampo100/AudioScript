@@ -48,13 +48,12 @@ class Interpreter(NodeVisitor):
         statement-list = {statement}* ;
         """
         for statement in node.statements:
-            self.visit(statement)
+            print(self.visit(statement))
+
 
     def visit_BinOp(self, node):
         if node.op.type == PLUS:
-            result = self.visit(node.left) + self.visit(node.right)
-            return result
-            #return self.visit(node.left) + self.visit(node.right)
+            return self.visit(node.left) + self.visit(node.right)
         elif node.op.type == MINUS:
             return self.visit(node.left) - self.visit(node.right)
         elif node.op.type == MUL:
@@ -103,6 +102,24 @@ class Interpreter(NodeVisitor):
                 "Error: Symbol(identifier) not found '%s'" % var_name
             )
         return var_symbol.value
+
+    def visit_ConditionalVal(self, node):
+        if node.op.type == EQ:
+            return self.visit(node.left) == self.visit(node.right)
+        elif node.op.type == NEQ:
+            return self.visit(node.left) != self.visit(node.right)
+        elif node.op.type == LT:
+            return self.visit(node.left) < self.visit(node.right)
+        elif node.op.type == MT:
+            return self.visit(node.left) > self.visit(node.right)
+        elif node.op.type == LEQT:
+            return self.visit(node.left) <= self.visit(node.right)
+        elif node.op.type == MEQT:
+            return self.visit(node.left) >= self.visit(node.right)
+        elif node.op.type == AND:
+            return self.visit(node.left) and self.visit(node.right)
+        elif node.op.type == OR:
+            return self.visit(node.left) or self.visit(node.right)
 
     def visit_NoOp(self, node):
         pass
