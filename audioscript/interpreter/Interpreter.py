@@ -70,9 +70,9 @@ class Interpreter(NodeVisitor):
     def visit_UnaryOp(self, node):
         op = node.op.type
         if op == PLUS:
-            return +self.visit(node.expr)
+            return +self.visit(node.value)
         elif op == MINUS:
-            return -self.visit(node.expr)
+            return -self.visit(node.value)
 
     def visit_Assign(self, node):
         # right-hand side

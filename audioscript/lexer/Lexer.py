@@ -174,7 +174,7 @@ class Lexer(object):
                 self.advance()
                 if self.current_char == '=':
                     self.advance()
-                    return Token(EQUAL, '==')
+                    return Token(EQ, '==')
                 else:
                     return Token(ASSIGN, '=')
 

@@ -44,7 +44,7 @@ class UnaryOp(AST):
         :param numeric_value: numeric value
         """
         self.token = self.op = op
-        self.val = numeric_value
+        self.value = numeric_value
 
 
 class StatList(AST):
