@@ -162,10 +162,10 @@ class Parser(object):
         left = self.variable()
         token = self.current_token
         self.eat(ASSIGN)
-        if self.current_token.type == PLUS or self.current_token.type == MINUS or self.current_token.type == NUMBER or self.current_token.type == LPAREN:
-            right = self.numeric_value()
-        else:
+        if self.current_token.type == STRING:
             right = self.string_value()
+        else:
+            right = self.numeric_value()
 
         node = Assign(left, token, right)
         return node
@@ -192,8 +192,6 @@ class Parser(object):
         return NoOp()
 
     ############# LOGIC ############
-
-
     def logical_factor(self):
         """
         logical-factor = (numeric-value | variable), lower-logical-operator, (numeric-value | variable)
@@ -204,10 +202,7 @@ class Parser(object):
         #    self.eat(NUMBER)
         #   return LogicalOp(token, self.)
 
-
     ############# MATH #############
-
-
     def numeric_value(self):
         """
         numeric-value = term, {math-sign, term} ;
@@ -239,7 +234,6 @@ class Parser(object):
             node = BinOp(left=node, op=token, right=self.factor())
 
         return node
-
 
     def factor(self):
         """factor = unary-operator, factor

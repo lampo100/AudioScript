@@ -1,24 +1,23 @@
 from collections import OrderedDict
-from interpreter.Interpreter import Interpreter, NodeVisitor
-from lexer.Lexer import Lexer, get_tokens
 
-globals().update(get_tokens())
 
 class Symbol(object):
-    def __init__(self, name, type=None):
+    def __init__(self, name, type=None, value=None):
         self.name = name
         self.type = type
+        self.value = value
 
 
 class VarSymbol(Symbol):
-    def __init__(self, name, type):
-        super(VarSymbol, self).__init__(name, type)
+    def __init__(self, name, type, value):
+        super(VarSymbol, self).__init__(name, type, value)
 
     def __str__(self):
-        return "<{class_name}(name='{name}', type='{type}')>".format(
+        return "<{class_name}(name='{name}', type='{type}')> = {value}".format(
             class_name=self.__class__.__name__,
             name=self.name,
             type=self.type,
+            value=self.value
         )
 
     __repr__ = __str__
@@ -52,7 +51,6 @@ class ProcedureSymbol(Symbol):
         )
 
     __repr__ = __str__
-
 
 
 class ScopedSymbolTable(object):
@@ -108,128 +106,3 @@ class ScopedSymbolTable(object):
         # recursively go up the chain and lookup the name
         if self.enclosing_scope is not None:
             return self.enclosing_scope.lookup(name)
-
-
-class SemanticAnalyzer(NodeVisitor):
-    def __init__(self):
-        self.current_scope = None
-
-    def visit_UnaryOp(self, node):
-        op = node.op.type
-        if op == PLUS:
-            return +self.visit(node.expr)
-        elif op == MINUS:
-            return -self.visit(node.expr)
-
-    def visit_Program(self, node):
-        print('ENTER scope: global')
-        global_scope = ScopedSymbolTable(
-            scope_name='global',
-            scope_level=1,
-            enclosing_scope=self.current_scope, # None
-        )
-        global_scope._init_builtins()
-        self.current_scope = global_scope
-
-        # visit subtree
-        self.visit(node.root)
-
-        print(global_scope)
-
-        self.current_scope = self.current_scope.enclosing_scope
-        print('LEAVE scope: global')
-
-    def visit_StatList(self, node):
-        for statement in node.statements:
-            self.visit(statement)
-
-    def visit_BinOp(self, node):
-        self.visit(node.left)
-        self.visit(node.right)
-
-    def visit_ProcedureDecl(self, node):
-        proc_name = node.proc_name
-        proc_symbol = ProcedureSymbol(proc_name)
-        self.current_scope.insert(proc_symbol)
-
-        print('ENTER scope: %s' %  proc_name)
-        # Scope for parameters and local variables
-        procedure_scope = ScopedSymbolTable(
-            scope_name=proc_name,
-            scope_level=self.current_scope.scope_level + 1,
-            enclosing_scope=self.current_scope
-        )
-        self.current_scope = procedure_scope
-
-        # Insert parameters into the procedure scope
-        for param in node.params:
-            param_type = self.current_scope.lookup(param.type_node.value)
-            param_name = param.var_node.value
-            var_symbol = VarSymbol(param_name, param_type)
-            self.current_scope.insert(var_symbol)
-            proc_symbol.params.append(var_symbol)
-
-        self.visit(node.block_node)
-
-        print(procedure_scope)
-
-        self.current_scope = self.current_scope.enclosing_scope
-        print('LEAVE scope: %s' %  proc_name)
-
-    def visit_VarDecl(self, node):
-        type_name = node.type_node.value
-        type_symbol = self.current_scope.lookup(type_name)
-
-        # We have all the information we need to create a variable symbol.
-        # Create the symbol and insert it into the symbol table.
-        var_name = node.var_node.value
-        var_symbol = VarSymbol(var_name, type_symbol)
-
-        # Signal an error if the table alrady has a symbol
-        # with the same name
-        if self.current_scope.lookup(var_name, current_scope_only=True):
-            raise Exception(
-                "Error: Duplicate identifier '%s' found" % var_name
-            )
-
-        self.current_scope.insert(var_symbol)
-
-    def visit_Assign(self, node):
-        # right-hand side
-        self.visit(node.right)
-        # left-hand side
-
-        node = node.left
-        type_name = node.type_node.value
-        type_symbol = self.current_scope.lookup(type_name)
-        var_name = node.var_node.value
-        var_symbol = VarSymbol(var_name, type_symbol)
-        if self.current_scope.lookup(var_name, current_scope_only=True):
-            raise Exception(
-                "Error: Duplicate identifier '%s' found" % var_name
-            )
-        self.current_scope.insert(var_symbol)
-
-    def visit_Var(self, node):
-        var_name = node.value
-        var_symbol = self.current_scope.lookup(var_name)
-        if var_symbol is None:
-            raise Exception(
-                "Error: Symbol(identifier) not found '%s'" % var_name
-            )
-
-    def visit_NoOp(self, node):
-        pass
-
-if __name__ == '__main__':
-    import sys
-    text = open(sys.argv[1], 'r').read()
-
-    lexer = Lexer(text)
-    parser = Parser(lexer)
-    tree = parser.parse()
-    semantic_analyzer = SemanticAnalyzer()
-    try:
-        semantic_analyzer.visit(tree)
-    except Exception as e:
-print(e)
