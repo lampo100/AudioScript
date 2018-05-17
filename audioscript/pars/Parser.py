@@ -183,7 +183,7 @@ class Parser(object):
 	    | empty, semi ;
         """
         if self.current_token.type == ID:
-            node = self.assignment_statement()
+            node = self.factorized()
             self.eat(SEMI)
         elif self.current_token.type == VAR:
             node = self.variable_declaration()
@@ -192,11 +192,11 @@ class Parser(object):
             node = self.if_statement()
         elif self.current_token.type == WHILE:
             node = self.while_statement()
-        elif self.current_token.type == PLUS or self.current_token.type == MINUS or self.current_token.type == NUMBER or self.current_token.type == LPAREN:
+        elif self.current_token.type == NUMBER or self.current_token.type == LPAREN:
             node = self.numeric_value()
             self.eat(SEMI)
         elif self.current_token.type == STRING:
-            node = self.sring_value()
+            node = self.string_value()
             self.eat(SEMI)
         elif self.current_token.type == LCURLY:
             node = self.block_statement()
@@ -204,6 +204,18 @@ class Parser(object):
             node = self.empty()
             self.eat(SEMI)
         return node
+
+    def factorized(self):
+        variable = self.variable()
+        if self.current_token.type == ASSIGN:
+            token = self.current_token
+            right = self.assignment_statement()
+            return Assign(variable, token, right)
+        elif self.current_token.type == PLUS or self.current_token.type == MINUS or self.current_token == MUL or self.current_token == DIV:
+            op = self.current_token
+            self.eat(op.type)
+            right = self.numeric_value()
+            return BinOp(variable, op, right)
 
     def if_statement(self):
         self.eat(IF)
@@ -213,7 +225,6 @@ class Parser(object):
 
         block_node = self.statement()
         return If(cond_node, block_node)
-
 
     def while_statement(self):
         self.eat(WHILE)
@@ -240,21 +251,17 @@ class Parser(object):
             self.eat(ID)
         return VarDeclaration(type, names)
 
-
     def assignment_statement(self):
         """
         assignment-statement = variable, assign, (numeric-value | string-value | nill), semi ;
         """
-        left = self.variable()
-        token = self.current_token
         self.eat(ASSIGN)
         if self.current_token.type == STRING:
             right = self.string_value()
         else:
             right = self.numeric_value()
 
-        node = Assign(left, token, right)
-        return node
+        return right
 
     def string_value(self):
         token = self.current_token
