@@ -91,6 +91,18 @@ class ASTVisualizer(NodeVisitor):
         node._num = self.ncount
         self.ncount += 1
 
+    def visit_If(self, node):
+        s = '  node{} [label="If"]\n'.format(self.ncount)
+        self.dot_body.append(s)
+        node._num = self.ncount
+        self.ncount += 1
+
+        self.visit(node.cond)
+        self.visit(node.block)
+        self.dot_body.append('  node{} -> node{}\n'.format(node._num, node.cond._num))
+        self.dot_body.append('  node{} -> node{}\n'.format(node._num, node.block._num))
+
+
     def visit_BinOp(self, node):
         s = '  node{} [label="{}"]\n'.format(self.ncount, node.op.value)
         self.dot_body.append(s)

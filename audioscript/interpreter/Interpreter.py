@@ -90,6 +90,13 @@ class Interpreter(NodeVisitor):
         elif op == MINUS:
             return -self.visit(node.value)
 
+    def visit_If(self, node):
+        cond_node = node.cond
+        block_node = node.block
+
+        while(self.visit(cond_node)):
+            self.visit(block_node)
+
     def visit_Assign(self, node):
         # right-hand side
         value = self.visit(node.right)
@@ -100,15 +107,26 @@ class Interpreter(NodeVisitor):
         # left-hand side
 
         node = node.left
-
-        type_symbol = self.current_scope.lookup("NUMBER")
         var_name = node.value
-        var_symbol = VarSymbol(var_name, type_symbol, value)
-        if self.current_scope.lookup(var_name, current_scope_only=True):
+
+        var_symbol = self.current_scope.lookup(var_name)
+        if var_symbol is None:
             raise Exception(
-                "Error: Duplicate identifier '%s' found" % var_name
+                "Error: Unidentified variable \"%s\"" % var_name
             )
-        self.current_scope.insert(var_symbol)
+        var_symbol.value = value
+
+    def visit_VarDeclaration(self, node):
+        var_type = self.current_scope.lookup(node.type)
+
+        for variable in node.names:
+            var_symbol = VarSymbol(variable.value, var_type, None)
+            if self.current_scope.lookup(variable.value, current_scope_only=True):
+                raise Exception(
+                    "Error: Duplicate identifier '%s' found" % var_name
+                )
+            self.current_scope.insert(var_symbol)
+
 
     def visit_Var(self, node):
         var_name = node.value

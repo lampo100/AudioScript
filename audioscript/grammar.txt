@@ -45,7 +45,7 @@ name = alphabetic-character, { alphabetic-character | digit } ;
 name-list = {name, ','}, [name]
 ########################################################## PROGRAM ##########################################################
 
-program = declarations, statement-list ;
+program = declarations, {statement-list | block-statement} ;
 
 ########################################################## DECLARATIONS #####################################################
 
@@ -82,8 +82,7 @@ comma = "," ;
 
 statement-list = {statement}* ;
 
-statement = block-statement 
-	    | assignment-statement, semi 
+statement = assignment-statement, semi 
 	    | function-call 
 	    | numeric-value 
 	    | string-value 

@@ -26,7 +26,8 @@ tokens = {'NUMBER':'NUMBER',
           'IF':'IF',
           'ELSE':'ELSE',
           'OR':'OR',
-          'AND':'AND'
+          'AND':'AND',
+          'VAR':'VAR'
 }
 
 def get_tokens():
@@ -66,7 +67,8 @@ RESERVED_KEYWORDS = {
     'if': Token('IF', 'IF'),
     'else': Token('ELSE', 'ELSE'),
     'and': Token('AND', 'AND'),
-    'or': Token('OR', 'OR')
+    'or': Token('OR', 'OR'),
+    'var': Token('VAR', 'VAR')
 }
 
 

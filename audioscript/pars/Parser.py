@@ -54,6 +54,7 @@ class BlockStat(AST):
     def __init__(self, statements_list):
         self.list = statements_list
 
+
 class StatList(AST):
     """
     Represents list of statements.
@@ -82,6 +83,13 @@ class Assign(AST):
         self.right = right
 
 
+class VarDeclaration(AST):
+    """ The VarDeclaration node represents variable declaration."""
+    def __init__(self, type, names):
+        self.type = type
+        self.names = names
+
+
 class Var(AST):
     """The Var node is constructed out of ID token."""
     def __init__(self, token):
@@ -92,6 +100,11 @@ class Var(AST):
         self.token = token
         self.value = token.value
 
+
+class If(AST):
+    def __init__(self, coditional_node, block_node):
+        self.cond = coditional_node
+        self.block = block_node
 
 class ConditionalVal(AST):
     def __init__(self, left, op, right):
@@ -141,14 +154,13 @@ class Parser(object):
 
     def statement_list(self):
         """
-        statement_list : statement, statement, semi, statement-list*\
+        statement_list : {statement}
         """
         node = self.statement()
 
         results = [node]
 
-        while self.current_token.type == SEMI:
-            self.eat(SEMI)
+        while self.current_token.type in (ID, IF, PLUS, MINUS, NUMBER, LPAREN, SEMI, LCURLY, VAR):
             results.append(self.statement())
 
         return StatList(results)
@@ -156,28 +168,62 @@ class Parser(object):
     def statement(self):
         """
         statement = block-statement
-	    | assignment-statement
+        | variable-declaration, semi
+        |assignment-statement, semi
 	    | function-call, semi
-	    | numeric-value
-	    | string-value
+	    | numeric-value, semi
+	    | string-value, semi
 	    | while-statement
 	    | if-statement
-	    | empty ;
+	    | empty, semi ;
         """
         if self.current_token.type == ID:
             node = self.assignment_statement()
+            self.eat(SEMI)
+        elif self.current_token.type == VAR:
+            node = self.variable_declaration()
+            self.eat(SEMI)
         elif self.current_token.type == IF:
-            self.eat(IF)
-            node = self.cond_expr()
+            node = self.if_statement()
         elif self.current_token.type == PLUS or self.current_token.type == MINUS or self.current_token.type == NUMBER or self.current_token.type == LPAREN:
             node = self.numeric_value()
+            self.eat(SEMI)
         elif self.current_token.type == STRING:
-            node = self.string_value()
+            node = self.sring_value()
+            self.eat(SEMI)
         elif self.current_token.type == LCURLY:
             node = self.block_statement()
         else:
             node = self.empty()
+            self.eat(SEMI)
         return node
+
+    def if_statement(self):
+        self.eat(IF)
+        self.eat(LPAREN)
+        cond_node = self.cond_expr()
+        self.eat(RPAREN)
+
+        block_node = self.statement()
+        return If(cond_node, block_node)
+
+
+    def variable_declaration(self):
+        """
+        variable-declaration = var-type, identifier, {comma, identifier} ;
+        """
+        # TODO CHANGE TO TYPE TOKEN AFTER ADDING DECLARED TYPES
+        type = self.current_token
+        self.eat(VAR)
+        names = [self.current_token]
+        self.eat(ID)
+
+        while self.current_token.type is COMMA:
+            self.eat(COMMA)
+            names.append(self.current_token)
+            self.eat(ID)
+        return VarDeclaration(type, names)
+
 
     def assignment_statement(self):
         """

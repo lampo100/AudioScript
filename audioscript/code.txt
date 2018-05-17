@@ -1,9 +1,9 @@
+var a, c, z, s;
 a = 3;
-b = 4;
-c = a + 4*b - 22 / 45;
-2 + 3;
-p = "dsadsa"; t = p * 2; z = "Pomidor";
-if 1 < 2; if 3 > 5; if a < 5 and b > 3 or 0 >= 1 and 0 != 2;
+a + 2;
 {
-2 * 3; a = 4; b = 1;
+a = a - 1;
+a = a - 2;
 }
+var b;
+b = a;
