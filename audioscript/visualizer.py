@@ -39,6 +39,15 @@ class ASTVisualizer(NodeVisitor):
         s = '  node{} -> node{}\n'.format(node._num, node.root._num)
         self.dot_body.append(s)
 
+    def visit_BlockStat(self, node):
+        s = '  node{} [label="Block"]\n'.format(self.ncount)
+        self.dot_body.append(s)
+        node._num = self.ncount
+        self.ncount += 1
+
+        self.visit(node.list)
+        s = '  node{} -> node{}\n'.format(node._num, node.list._num)
+        self.dot_body.append(s)
 
     def visit_StatList(self, node):
         s = '  node{} [label="Statement List"]\n'.format(self.ncount)
@@ -141,6 +150,8 @@ def main():
         viz = ASTVisualizer(parser)
         content = viz.gendot()
         print(content)
+
+    print(text)
 
     with open("./AST.dot", 'w') as f:
         f.write(content)

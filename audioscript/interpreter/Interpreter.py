@@ -41,7 +41,24 @@ class Interpreter(NodeVisitor):
 
 
         self.current_scope = self.current_scope.enclosing_scope
+        print(self.global_scope)
         print('LEAVE scope: global')
+
+    def visit_BlockStat(self, node):
+        print('ENTER scope: %s' %  "BLOCK SCOPE")
+        # Scope for parameters and local variables
+        block_scope = ScopedSymbolTable(
+            scope_name="Block scope",
+            scope_level=self.current_scope.scope_level + 1,
+            enclosing_scope=self.current_scope
+        )
+        self.current_scope = block_scope
+
+        self.visit(node.list)
+
+        print(block_scope)
+        self.current_scope = block_scope.enclosing_scope
+        print("LEAVE scope: BLOCK SCOPE")
 
     def visit_StatList(self, node):
         """
@@ -49,7 +66,6 @@ class Interpreter(NodeVisitor):
         """
         for statement in node.statements:
             print(self.visit(statement))
-
 
     def visit_BinOp(self, node):
         if node.op.type == PLUS:
@@ -131,13 +147,22 @@ class Interpreter(NodeVisitor):
 
 
 def main():
-    text = input("> ")
-    lexer = Lexer(text)
-    parser = Parser(lexer)
-    interpreter = Interpreter(parser)
-    result = interpreter.interpret()
-    print(interpreter.global_scope)
+    # text = input("> ")
+    # lexer = Lexer(text)
+    # parser = Parser(lexer)
+    # interpreter = Interpreter(parser)
+    # result = interpreter.interpret()
+    # print(interpreter.global_scope)
 
+    filepath = input("Input code path:\n>")
+    with open(filepath, 'r') as f:
+        text = ""
+        for line in f:
+            text += line.strip()
+        lexer = Lexer(text)
+        parser = Parser(lexer)
+        int = Interpreter(parser)
+        int.interpret()
 
 if __name__ == '__main__':
     main()

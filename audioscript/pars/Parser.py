@@ -47,6 +47,13 @@ class UnaryOp(AST):
         self.value = numeric_value
 
 
+class BlockStat(AST):
+    """
+    Represents block statement
+    """
+    def __init__(self, statements_list):
+        self.list = statements_list
+
 class StatList(AST):
     """
     Represents list of statements.
@@ -125,15 +132,23 @@ class Parser(object):
         node = Program(stat_list)
         return node
 
+    def block_statement(self):
+        self.eat(LCURLY)
+        node = self.statement_list()
+        self.eat(RCURLY)
+
+        return BlockStat(node)
+
     def statement_list(self):
         """
-        statement_list : {statement}*\
+        statement_list : statement, statement, semi, statement-list*\
         """
         node = self.statement()
 
         results = [node]
 
-        while self.current_token.type != EOF:
+        while self.current_token.type == SEMI:
+            self.eat(SEMI)
             results.append(self.statement())
 
         return StatList(results)
@@ -141,34 +156,32 @@ class Parser(object):
     def statement(self):
         """
         statement = block-statement
-	    | assignment-statement, semi
+	    | assignment-statement
 	    | function-call, semi
-	    | numeric-value, semi
-	    | string-value, semi
+	    | numeric-value
+	    | string-value
 	    | while-statement
 	    | if-statement
 	    | empty ;
         """
         if self.current_token.type == ID:
             node = self.assignment_statement()
-            self.eat(SEMI)
         elif self.current_token.type == IF:
             self.eat(IF)
             node = self.cond_expr()
-            self.eat(SEMI)
         elif self.current_token.type == PLUS or self.current_token.type == MINUS or self.current_token.type == NUMBER or self.current_token.type == LPAREN:
             node = self.numeric_value()
-            self.eat(SEMI)
         elif self.current_token.type == STRING:
             node = self.string_value()
-            self.eat(SEMI)
+        elif self.current_token.type == LCURLY:
+            node = self.block_statement()
         else:
             node = self.empty()
         return node
 
     def assignment_statement(self):
         """
-        assignment-statement = variable, assign, (numeric-value | string-value | nill) ;
+        assignment-statement = variable, assign, (numeric-value | string-value | nill), semi ;
         """
         left = self.variable()
         token = self.current_token

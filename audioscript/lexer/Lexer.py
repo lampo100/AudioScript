@@ -234,6 +234,14 @@ class Lexer(object):
                 self.advance()
                 return Token(RPAREN, ')')
 
+            if self.current_char == '{':
+                self.advance()
+                return Token(LCURLY, '{')
+
+            if self.current_char == '}':
+                self.advance()
+                return Token(RCURLY, '}')
+
             if self.current_char == '\"':
                 return self.string()
 
