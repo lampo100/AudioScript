@@ -102,8 +102,13 @@ class Var(AST):
 
 
 class If(AST):
-    def __init__(self, coditional_node, block_node):
-        self.cond = coditional_node
+    def __init__(self, conditional_node, block_node):
+        self.cond = conditional_node
+        self.block = block_node
+
+class While(AST):
+    def __init__(self, conditional_node, block_node):
+        self.cond = conditional_node
         self.block = block_node
 
 class ConditionalVal(AST):
@@ -160,7 +165,7 @@ class Parser(object):
 
         results = [node]
 
-        while self.current_token.type in (ID, IF, PLUS, MINUS, NUMBER, LPAREN, SEMI, LCURLY, VAR):
+        while self.current_token.type in (ID, IF, PLUS, MINUS, NUMBER, LPAREN, SEMI, LCURLY, VAR, WHILE):
             results.append(self.statement())
 
         return StatList(results)
@@ -185,6 +190,8 @@ class Parser(object):
             self.eat(SEMI)
         elif self.current_token.type == IF:
             node = self.if_statement()
+        elif self.current_token.type == WHILE:
+            node = self.while_statement()
         elif self.current_token.type == PLUS or self.current_token.type == MINUS or self.current_token.type == NUMBER or self.current_token.type == LPAREN:
             node = self.numeric_value()
             self.eat(SEMI)
@@ -207,6 +214,15 @@ class Parser(object):
         block_node = self.statement()
         return If(cond_node, block_node)
 
+
+    def while_statement(self):
+        self.eat(WHILE)
+        self.eat(LPAREN)
+        cond_node = self.cond_expr()
+        self.eat(RPAREN)
+
+        block_node = self.statement()
+        return While(cond_node, block_node)
 
     def variable_declaration(self):
         """

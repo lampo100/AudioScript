@@ -1,10 +1,17 @@
-var a, c, z, s;
+var a;
 a = 3;
-z = a + 2;
-{
-a = a - 1;
-var p;
-a = a - 2;
+if(a > 0){
+    var c;
+    c = 4;
+    a = a - 1;
 }
+if(a == 1)
+    var z;
 var b;
 b = a;
+while(b < 10){
+    var c;
+    c = 3;
+    a = a + 1;
+    b  = b+1;
+}

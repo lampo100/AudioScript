@@ -94,16 +94,23 @@ class Interpreter(NodeVisitor):
         cond_node = node.cond
         block_node = node.block
 
+        if(self.visit(cond_node)):
+            self.visit(block_node)
+
+    def visit_While(self, node):
+        cond_node = node.cond
+        block_node = node.block
+
         while(self.visit(cond_node)):
             self.visit(block_node)
 
     def visit_Assign(self, node):
         # right-hand side
         value = self.visit(node.right)
-        if value is None:
-            raise Exception(
-                "Cannot assign None"
-            )
+        # if value is None:
+        #     raise Exception(
+        #         "Cannot assign None"
+        #     )
         # left-hand side
 
         node = node.left

@@ -24,6 +24,7 @@ tokens = {'NUMBER':'NUMBER',
           'LEQT':'<=',
           'MEQT':'>=',
           'IF':'IF',
+          'WHILE':'WHILE',
           'ELSE':'ELSE',
           'OR':'OR',
           'AND':'AND',
@@ -68,7 +69,8 @@ RESERVED_KEYWORDS = {
     'else': Token('ELSE', 'ELSE'),
     'and': Token('AND', 'AND'),
     'or': Token('OR', 'OR'),
-    'var': Token('VAR', 'VAR')
+    'var': Token('VAR', 'VAR'),
+    'while': Token('WHILE', 'WHILE')
 }
 
 
