@@ -37,11 +37,11 @@ class BuiltinTypeSymbol(Symbol):
         )
 
 
-class ProcedureSymbol(Symbol):
-    def __init__(self, name, params=None):
-        super(ProcedureSymbol, self).__init__(name)
-        # a list of formal parameters
+class FunctionSymbol(Symbol):
+    def __init__(self, name, body, params=None):
+        super(FunctionSymbol, self).__init__(name)
         self.params = params if params is not None else []
+        self.body = body
 
     def __str__(self):
         return '<{class_name}(name={name}, parameters={params})>'.format(

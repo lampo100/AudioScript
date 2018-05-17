@@ -16,3 +16,12 @@ while(b < 10){
     a = a + 1;
     b  = b+1;
 }
+
+def foo(a, b, c){
+2 + 3;
+}
+{
+def foo(){
+;
+}
+}

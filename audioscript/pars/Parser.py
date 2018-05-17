@@ -47,6 +47,16 @@ class UnaryOp(AST):
         self.value = numeric_value
 
 
+class FunctionDeclaration(AST):
+    """
+    Represents function
+    """
+    def __init__(self, name, arguments, function_body):
+        self.name = name
+        self.arguments = arguments
+        self.body = function_body
+
+
 class BlockStat(AST):
     """
     Represents block statement
@@ -165,7 +175,7 @@ class Parser(object):
 
         results = [node]
 
-        while self.current_token.type in (ID, IF, PLUS, MINUS, NUMBER, LPAREN, SEMI, LCURLY, VAR, WHILE):
+        while self.current_token.type in (ID, IF, PLUS, MINUS, NUMBER, LPAREN, SEMI, LCURLY, VAR, WHILE, DEF):
             results.append(self.statement())
 
         return StatList(results)
@@ -173,9 +183,8 @@ class Parser(object):
     def statement(self):
         """
         statement = block-statement
-        | variable-declaration, semi
-        |assignment-statement, semi
-	    | function-call, semi
+        | factorized, semi
+        | function-definition, semi
 	    | numeric-value, semi
 	    | string-value, semi
 	    | while-statement
@@ -188,6 +197,9 @@ class Parser(object):
         elif self.current_token.type == VAR:
             node = self.variable_declaration()
             self.eat(SEMI)
+        elif self.current_token.type == DEF:
+            self.eat(DEF)
+            node = self.function_declaration()
         elif self.current_token.type == IF:
             node = self.if_statement()
         elif self.current_token.type == WHILE:
@@ -216,6 +228,8 @@ class Parser(object):
             self.eat(op.type)
             right = self.numeric_value()
             return BinOp(variable, op, right)
+        elif self.current_token.type == LPAREN:
+            self.function_call()
 
     def if_statement(self):
         self.eat(IF)
@@ -234,6 +248,42 @@ class Parser(object):
 
         block_node = self.statement()
         return While(cond_node, block_node)
+
+    def function_call(self):
+        """"""
+        pass
+
+    def function_declaration(self):
+        """
+        function-declaration = identifier, lparen, var-list, rparen, function-block ;
+        """
+        name = self.current_token
+        self.eat(ID)
+
+        self.eat(LPAREN)
+        names = self.var_list()
+        self.eat(RPAREN)
+
+        body = self.block_statement()
+
+        return FunctionDeclaration(name, names, body)
+
+    def var_list(self):
+        """
+        var-list = identifier, {comma, identifier} | empty ;
+        """
+        if self.current_token.type == ID:
+            names = [self.current_token.value]
+            self.eat(ID)
+
+            while self.current_token.type is COMMA:
+                self.eat(COMMA)
+                names.append(self.current_token.value)
+                self.eat(ID)
+        else:
+            names = []
+
+        return names
 
     def variable_declaration(self):
         """

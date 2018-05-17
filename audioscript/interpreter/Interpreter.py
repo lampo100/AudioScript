@@ -1,6 +1,6 @@
 from lexer.Lexer import Lexer, get_tokens
 from pars.Parser import Parser
-from interpreter.symbol_table import ScopedSymbolTable, VarSymbol, Symbol, BuiltinTypeSymbol
+from interpreter.symbol_table import ScopedSymbolTable, VarSymbol, FunctionSymbol
 
 
 globals().update(get_tokens())
@@ -66,6 +66,18 @@ class Interpreter(NodeVisitor):
         """
         for statement in node.statements:
             print(self.visit(statement))
+
+    def visit_FunctionDeclaration(self, node):
+        name = node.name
+        args = node.arguments
+        body = node.body
+
+        func_symbol = FunctionSymbol(name.value, body, args)
+        if self.current_scope.lookup(name.value, current_scope_only=True):
+            raise Exception(
+                "Error: Duplicate identifier '%s' found" % name.value
+            )
+        self.current_scope.insert(func_symbol)
 
     def visit_BinOp(self, node):
         if node.op.type == PLUS:
@@ -143,6 +155,9 @@ class Interpreter(NodeVisitor):
                 "Error: Symbol(identifier) not found '%s'" % var_name
             )
         return var_symbol.value
+
+    def visit_Function(self, node):
+        arguments = node.arguments
 
     def visit_ConditionalVal(self, node):
         if node.op.type == EQ:

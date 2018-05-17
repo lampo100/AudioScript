@@ -28,7 +28,8 @@ tokens = {'NUMBER':'NUMBER',
           'ELSE':'ELSE',
           'OR':'OR',
           'AND':'AND',
-          'VAR':'VAR'
+          'VAR':'VAR',
+          'DEF':'DEF'
 }
 
 def get_tokens():
@@ -70,7 +71,8 @@ RESERVED_KEYWORDS = {
     'and': Token('AND', 'AND'),
     'or': Token('OR', 'OR'),
     'var': Token('VAR', 'VAR'),
-    'while': Token('WHILE', 'WHILE')
+    'while': Token('WHILE', 'WHILE'),
+    'def': Token('DEF', 'DEF')
 }
 
 
