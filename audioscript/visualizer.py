@@ -66,6 +66,19 @@ class ASTVisualizer(NodeVisitor):
         node._num = self.ncount
         self.ncount += 1
 
+    def visit_VarDeclaration(self, node):
+        s = '  node{} [label="Var\\nDeclaration: {}"]\n'.format(self.ncount, node.type.value)
+        self.dot_body.append(s)
+        node._num = self.ncount
+        self.ncount += 1
+
+        for variable, i in zip(node.names, range(1, len(node.names) + 1)):
+            s = '  node{} -> node{}\n'.format(node._num, node._num + i)
+            ns = '  node{} [label="{}"]\n'.format(node._num + i, variable.value)
+            self.dot_body.extend((s, ns))
+
+        self.ncount += len(node.names)
+
     def visit_Num(self, node):
         s = '  node{} [label="{}"]\n'.format(self.ncount, node.token.value)
         self.dot_body.append(s)

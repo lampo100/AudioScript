@@ -117,7 +117,7 @@ class Interpreter(NodeVisitor):
         var_symbol.value = value
 
     def visit_VarDeclaration(self, node):
-        var_type = self.current_scope.lookup(node.type)
+        var_type = self.current_scope.lookup(node.type.value)
 
         for variable in node.names:
             var_symbol = VarSymbol(variable.value, var_type, None)

@@ -63,6 +63,7 @@ class ScopedSymbolTable(object):
     def _init_builtins(self):
         self.insert(BuiltinTypeSymbol('NUMBER'))
         self.insert(BuiltinTypeSymbol('STRING'))
+        self.insert(BuiltinTypeSymbol('VAR'))
 
     def __str__(self):
         h1 = 'SCOPE (SCOPED SYMBOL TABLE)'
