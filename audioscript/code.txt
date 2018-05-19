@@ -1,27 +1,3 @@
-var a;
-a = 3;
-a + 33;
-if(a > 0){
-    var c;
-    c = 4;
-    a = a - 1;
-}
-if(a == 1)
-    var z;
-var b;
-b = a;
-while(b < 10){
-    var c;
-    c = 3;
-    a = a + 1;
-    b  = b+1;
-}
+def fibonacci(x, y){
 
-def foo(a, b, c){
-2 + 3;
-}
-{
-def foo(){
-;
-}
 }

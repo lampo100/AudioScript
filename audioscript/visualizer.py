@@ -121,8 +121,22 @@ class ASTVisualizer(NodeVisitor):
         node._num = self.ncount
         self.ncount += 1
 
+        for arg, i in zip(node.arguments, range(1, len(node.arguments) + 1)):
+            ns = '  node{} [label="{}"]\n'.format(node._num + i, arg)
+            s = '  node{} -> node{}\n'.format(node._num, node._num + i)
+            self.dot_body.extend((s, ns))
+
+        self.ncount += len(node.arguments)
+
         self.visit(node.body)
         self.dot_body.append('  node{} -> node{}\n'.format(node._num, node.body._num))
+
+    def visit_FunctionCall(self, node):
+        s = '  node{} [label="{}({})"]\n'.format(self.ncount, node.function.value, [arg.value for arg in node.args])
+        self.dot_body.append(s)
+        node._num = self.ncount
+        self.ncount += 1
+
 
     def visit_While(self, node):
         s = '  node{} [label="While"]\n'.format(self.ncount)

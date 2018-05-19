@@ -1,4 +1,4 @@
-from lexer.Lexer import get_tokens
+from lexer.Lexer import get_tokens, Token
 
 globals().update(get_tokens())
 
@@ -55,6 +55,15 @@ class FunctionDeclaration(AST):
         self.name = name
         self.arguments = arguments
         self.body = function_body
+
+
+class FunctionCall(AST):
+    """
+    Represents function call
+    """
+    def __init__(self, function, args):
+        self.function = function
+        self.args = args
 
 
 class BlockStat(AST):
@@ -229,7 +238,8 @@ class Parser(object):
             right = self.numeric_value()
             return BinOp(variable, op, right)
         elif self.current_token.type == LPAREN:
-            self.function_call()
+            args = self.function_call()
+            return FunctionCall(variable, args)
 
     def if_statement(self):
         self.eat(IF)
@@ -250,8 +260,22 @@ class Parser(object):
         return While(cond_node, block_node)
 
     def function_call(self):
-        """"""
-        pass
+        """function-call = lparen, {variable | numeric-value | string-value}, rparen;"""
+        self.eat(LPAREN)
+
+        args = []
+        while self.current_token.type in (ID, NUMBER, STRING, COMMA):
+            if self.current_token.type == COMMA:
+                self.eat(COMMA)
+            if self.current_token.type == ID:
+                args.append(self.variable())
+            elif self.current_token.type == NUMBER:
+                args.append(self.numeric_value())
+            else:
+                args.append(self.string_value())
+
+        self.eat(RPAREN)
+        return args
 
     def function_declaration(self):
         """
@@ -265,6 +289,8 @@ class Parser(object):
         self.eat(RPAREN)
 
         body = self.block_statement()
+        #args = [Token(ID, name) for name in names]
+        #body.list.statements.insert(0, (VarDeclaration(Token(ID, VAR), args)))
 
         return FunctionDeclaration(name, names, body)
 

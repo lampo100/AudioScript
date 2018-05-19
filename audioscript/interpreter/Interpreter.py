@@ -79,6 +79,29 @@ class Interpreter(NodeVisitor):
             )
         self.current_scope.insert(func_symbol)
 
+    def visit_FunctionCall(self, node):
+        function = node.function
+
+        func_symbol = self.current_scope.lookup(function.value)
+        if func_symbol is None:
+            raise Exception(
+                "Error: Unidentified function \"%s\"" % function.name
+            )
+
+        function_scope = ScopedSymbolTable(
+            scope_name="%s scope" % function.value,
+            scope_level=self.current_scope.scope_level + 1,
+            enclosing_scope=self.current_scope
+        )
+        self.current_scope = function_scope
+
+        for name, val in zip(func_symbol.arguments, node.args):
+            function_scope.insert(VarSymbol(name, function_scope.lookup('VAR'), val.value))
+
+        self.visit(func_symbol.body)
+
+        self.current_scope = function_scope.enclosing_scope
+
     def visit_BinOp(self, node):
         if node.op.type == PLUS:
             return self.visit(node.left) + self.visit(node.right)

@@ -82,27 +82,25 @@ comma = "," ;
 
 statement-list = {statement}* ;
 
-statement = assignment-statement, semi 
-	    | function-call 
-	    | numeric-value 
-	    | string-value 
+statement = variable, factorized, semi ;
+	    | string-value , semi ;
 	    | while-statement 
 	    | if-statement 
 	    | empty ;
 
+factorized = empty |  function-call | assignment-statement ;
+
 block-statement = lcurly, statement-list, rcurly ;
 
-assignment-statement = variable, assign, (numeric-value | string-value | nill | function-call) ;
+assignment-statement = assign, (numeric-value | string-value | nill | function-call) ;
 
-function-call = variable, lparen, {variable | numeric-value | string-value}, rparen, semi;
+function-call = lparen, {variable | numeric-value | string-value}, rparen;
 
 variable-declaration = var-type, identifier, {comma, identifier} ;
 
 var-list = identifier, {comma, identifier} ;
 
-function-declaration = identifier, lparen, var-list, rparen, function-block ;
-
-function-block = lcurly, statement-list, rcurly ;
+function-declaration = identifier, lparen, var-list, rparen, block-statement ;
 
 nill = SOME_VALUE ;
 
