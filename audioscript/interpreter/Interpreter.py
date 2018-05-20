@@ -17,11 +17,19 @@ class NodeVisitor(object):
 class Interpreter(NodeVisitor):
 
     GLOBAL_SCOPE = {}
+    GLOBAL_RETURN = None
+    FUNCTION_CALL_RETURN_FLAG = False
 
     def __init__(self, parser):
         self.parser = parser
         self.current_scope = None
         self.global_scope = None
+
+    def visit(self, node):
+        method_name = 'visit_' + type(node).__name__
+        visitor = getattr(self, method_name, self.default_visit)
+        if not self.FUNCTION_CALL_RETURN_FLAG:
+            return visitor(node)
 
     def visit_Program(self, node):
         """
@@ -48,7 +56,7 @@ class Interpreter(NodeVisitor):
         print('ENTER scope: %s' %  "BLOCK SCOPE")
         # Scope for parameters and local variables
         block_scope = ScopedSymbolTable(
-            scope_name="Block scope",
+            scope_name="block",
             scope_level=self.current_scope.scope_level + 1,
             enclosing_scope=self.current_scope
         )
@@ -89,18 +97,20 @@ class Interpreter(NodeVisitor):
             )
 
         function_scope = ScopedSymbolTable(
-            scope_name="%s scope" % function.value,
+            scope_name="function",
             scope_level=self.current_scope.scope_level + 1,
             enclosing_scope=self.current_scope
         )
         self.current_scope = function_scope
 
         for name, val in zip(func_symbol.arguments, node.args):
-            function_scope.insert(VarSymbol(name, function_scope.lookup('VAR'), val.value))
+            function_scope.insert(VarSymbol(name, function_scope.lookup('VAR'), self.visit(val)))
 
         self.visit(func_symbol.body)
+        self.FUNCTION_CALL_RETURN_FLAG = False
 
         self.current_scope = function_scope.enclosing_scope
+        return self.GLOBAL_RETURN
 
     def visit_BinOp(self, node):
         if node.op.type == PLUS:
@@ -111,6 +121,8 @@ class Interpreter(NodeVisitor):
             return self.visit(node.left) * self.visit(node.right)
         elif node.op.type == DIV:
             return self.visit(node.left) / self.visit(node.right)
+
+        self.GLOBAL_RETURN = None
 
     def visit_Num(self, node):
         return node.value
@@ -157,6 +169,7 @@ class Interpreter(NodeVisitor):
                 "Error: Unidentified variable \"%s\"" % var_name
             )
         var_symbol.value = value
+        self.GLOBAL_RETURN = None
 
     def visit_VarDeclaration(self, node):
         var_type = self.current_scope.lookup(node.type.value)
@@ -168,6 +181,20 @@ class Interpreter(NodeVisitor):
                     "Error: Duplicate identifier '%s' found" % var_name
                 )
             self.current_scope.insert(var_symbol)
+
+
+    def visit_Return(self, node):
+        return_value_node = node.value
+
+        if self.current_scope.scope_level == 1 or self.current_scope.enclosing_scope.scope_name != "function":
+            raise Exception(
+                "Cannot return outside of function"
+            )
+        val = self.visit(return_value_node)
+
+        #Really ugly but I don't have time to think about doing it in some other way.
+        self.GLOBAL_RETURN = val
+        self.FUNCTION_CALL_RETURN_FLAG = True
 
 
     def visit_Var(self, node):

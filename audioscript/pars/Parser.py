@@ -33,6 +33,11 @@ class Num(AST):
         self.value = token.value
 
 
+class Return(AST):
+    def  __init__(self, value):
+        self.value = value
+
+
 class UnaryOp(AST):
     """
     Represents unary operation(plus and minus sign) node.
@@ -184,7 +189,7 @@ class Parser(object):
 
         results = [node]
 
-        while self.current_token.type in (ID, IF, PLUS, MINUS, NUMBER, LPAREN, SEMI, LCURLY, VAR, WHILE, DEF):
+        while self.current_token.type in (ID, IF, PLUS, MINUS, NUMBER, LPAREN, SEMI, LCURLY, VAR, WHILE, DEF, RETURN):
             results.append(self.statement())
 
         return StatList(results)
@@ -213,7 +218,7 @@ class Parser(object):
             node = self.if_statement()
         elif self.current_token.type == WHILE:
             node = self.while_statement()
-        elif self.current_token.type == NUMBER or self.current_token.type == LPAREN:
+        elif self.current_token.type == NUMBER or self.current_token.type == LPAREN or self.current_token == PLUS or self.current_token == MINUS:
             node = self.numeric_value()
             self.eat(SEMI)
         elif self.current_token.type == STRING:
@@ -221,6 +226,9 @@ class Parser(object):
             self.eat(SEMI)
         elif self.current_token.type == LCURLY:
             node = self.block_statement()
+        elif self.current_token.type == RETURN:
+            node = self.return_statement()
+            self.eat(SEMI)
         else:
             node = self.empty()
             self.eat(SEMI)
@@ -232,7 +240,7 @@ class Parser(object):
             token = self.current_token
             right = self.assignment_statement()
             return Assign(variable, token, right)
-        elif self.current_token.type == PLUS or self.current_token.type == MINUS or self.current_token == MUL or self.current_token == DIV:
+        elif self.current_token.type == PLUS or self.current_token.type == MINUS or self.current_token.type == MUL or self.current_token.type == DIV:
             op = self.current_token
             self.eat(op.type)
             right = self.numeric_value()
@@ -264,18 +272,37 @@ class Parser(object):
         self.eat(LPAREN)
 
         args = []
-        while self.current_token.type in (ID, NUMBER, STRING, COMMA):
+        while self.current_token.type in (ID, PLUS, MINUS, NUMBER, LPAREN, COMMA):
             if self.current_token.type == COMMA:
                 self.eat(COMMA)
             if self.current_token.type == ID:
-                args.append(self.variable())
-            elif self.current_token.type == NUMBER:
+                args.append(self.factorized())
+            elif self.current_token.type == NUMBER or self.current_token.type == LPAREN or self.current_token.type == MINUS or self.current_token.type == PLUS:
                 args.append(self.numeric_value())
-            else:
+            elif self.current_token.type == STRING:
                 args.append(self.string_value())
+            else:
+                self.error()
+
 
         self.eat(RPAREN)
         return args
+
+    def return_statement(self):
+        "return-statement = return, variable | numeric-value | string-value | function-call;"
+        self.eat(RETURN)
+        token = self.current_token
+
+        if token.type == ID:
+            node = self.factorized()
+        elif self.current_token.type == NUMBER or self.current_token.type == LPAREN or self.current_token.type == MINUS or self.current_token.type == PLUS:
+            node = self.numeric_value()
+        elif self.current_token.type == STRING:
+            node = self.string_value()
+        else:
+            self.error()
+
+        return Return(node)
 
     def function_declaration(self):
         """
@@ -329,15 +356,18 @@ class Parser(object):
 
     def assignment_statement(self):
         """
-        assignment-statement = variable, assign, (numeric-value | string-value | nill), semi ;
+        assignment-statement = variable, assign, (numeric-value | string-value | function-call | nill), semi ;
         """
         self.eat(ASSIGN)
-        if self.current_token.type == STRING:
-            right = self.string_value()
-        else:
-            right = self.numeric_value()
+        token = self.current_token
+        if token.type == ID:
+            node = self.factorized()
+        elif self.current_token.type == NUMBER or self.current_token.type == LPAREN or self.current_token.type == MINUS or self.current_token.type == PLUS:
+            node = self.numeric_value()
+        elif self.current_token.type == STRING:
+            node = self.string_value()
 
-        return right
+        return node
 
     def string_value(self):
         token = self.current_token
@@ -400,8 +430,14 @@ class Parser(object):
         else:
             self.error("CONDITIONAL-TOKEN")
 
-        rvalue = self.numeric_value()
-        return ConditionalVal(lvalue, token, rvalue)
+        token = self.current_token
+        if token.type == ID:
+            node = self.factorized()
+        elif self.current_token.type == NUMBER or self.current_token.type == LPAREN or self.current_token.type == MINUS or self.current_token.type == PLUS:
+            node = self.numeric_value()
+        elif self.current_token.type == STRING:
+            node = self.string_value()
+        return ConditionalVal(lvalue, token, node)
 
     ############# MATH #############
     def numeric_value(self):
@@ -463,6 +499,9 @@ class Parser(object):
             return node
         else:
             node = self.variable()
+            if self.current_token.type == LPAREN:
+                args = self.function_call()
+                return FunctionCall(node, args)
             return node
 
     def parse(self):

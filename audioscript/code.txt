@@ -1,3 +1,22 @@
-def fibonacci(x, y){
+def foo(){
+var x;
+x = 22;
+b = 2;
+}
 
+var b;
+foo();
+
+def foo1(a, b, c, d){
+;
+}
+
+foo1(1, "sds", 3, 4);
+var t, d, dsadas, aa;
+aa = 3932932;
+{
+ t = 8883;
+ t = "dsadas"
+ aa = "dsadas";
+ d = t + aa;
 }

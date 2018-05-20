@@ -115,8 +115,18 @@ class ASTVisualizer(NodeVisitor):
         self.dot_body.append('  node{} -> node{}\n'.format(node._num, node.cond._num))
         self.dot_body.append('  node{} -> node{}\n'.format(node._num, node.block._num))
 
+    def visit_Return(self, node):
+        s = '  node{} [label="Return"]\n'.format(self.ncount)
+        self.dot_body.append(s)
+        node._num = self.ncount
+        self.ncount += 1
+
+        self.visit(node.value)
+        s = '  node{} -> node{}\n'.format(node._num, node.value._num)
+        self.dot_body.append(s)
+
     def visit_FunctionDeclaration(self, node):
-        s = '  node{} [label="{}"]\n'.format(self.ncount, node.name)
+        s = '  node{} [label="Function \\nDeclaration: {}"]\n'.format(self.ncount, node.name.value)
         self.dot_body.append(s)
         node._num = self.ncount
         self.ncount += 1
@@ -132,10 +142,12 @@ class ASTVisualizer(NodeVisitor):
         self.dot_body.append('  node{} -> node{}\n'.format(node._num, node.body._num))
 
     def visit_FunctionCall(self, node):
-        s = '  node{} [label="{}({})"]\n'.format(self.ncount, node.function.value, [arg.value for arg in node.args])
+        args_values = [str(val.value) for val in node.args]
+        s = '  node{} [label="{}({})"]\n'.format(self.ncount, node.function.value, ', '.join(args_values))
         self.dot_body.append(s)
         node._num = self.ncount
         self.ncount += 1
+
 
 
     def visit_While(self, node):

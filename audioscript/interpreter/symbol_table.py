@@ -42,6 +42,7 @@ class FunctionSymbol(Symbol):
         super(FunctionSymbol, self).__init__(name)
         self.arguments = arguments if arguments is not None else []
         self.body = body
+        self.return_value = None
 
     def __str__(self):
         return '<{class_name}(name={name}, arguments={arguments})>'.format(
