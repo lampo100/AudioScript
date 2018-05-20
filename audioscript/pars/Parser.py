@@ -10,8 +10,9 @@ class AST(object):
 
 
 class Program(AST):
-    def __init__(self, root):
-        self.root = root
+    def __init__(self, declarations, code):
+        self.declarations = declarations
+        self.code = code
 
 
 class BinOp(AST):
@@ -148,6 +149,37 @@ class NoOp(AST):
     """
     pass
 
+class DeclaredType(AST):
+    """
+    Node representing exteral type
+    """
+    def __init__(self, name):
+        self.name = name
+
+class ExternalFunctionDeclaration(AST):
+    """
+    Node representing external function
+    """
+    def __init__(self, function_name, return_type = None, arguments_types = None):
+        self.name = function_name
+        self.return_type = return_type
+        self.arguments_types = arguments_types
+
+class ModuleDeclaration(AST):
+    """
+    Node representing declared module
+    """
+    def __init__(self, module_name, functions):
+        self.name = module_name
+        self.functions = functions
+
+class Declarations(AST):
+    """
+    Node representing external types and modules
+    """
+    def __init__(self, types, modules):
+        self.types = types
+        self.modules = modules
 
 class Parser(object):
     def __init__(self, lexer):
@@ -170,9 +202,122 @@ class Parser(object):
 
     def program(self):
         """program = statement-list"""
+        dec = self.declarations()
         stat_list = self.statement_list()
-        node = Program(stat_list)
+        node = Program(dec, stat_list)
         return node
+
+    ########################################################DECLARATIVE PART#######################################################
+    def declarations(self):
+        """
+        declaration-block = "Declarations", whitespace, '{', types-declaration, modules-declarations, whitespace, '}' ;
+        """
+        if self.current_token.type != DECLARATIONS:
+            return
+
+        self.eat(DECLARATIONS)
+        self.eat(LCURLY)
+        types = []
+        modules = []
+
+        if self.current_token.type == TYPES:
+            types = self.types_declarations()
+
+        if self.current_token.type == MODULES:
+            modules = self.modules_declarations()
+
+        self.eat(RCURLY)
+
+        return Declarations(types, modules)
+
+    def types_declarations(self):
+        """
+        types-declaration = "Types:", custom-type-list ;
+        """
+        self.eat(TYPES)
+        self.eat(COLON)
+        types = self.extern_types_list()
+        self.eat(SEMI)
+
+        return types
+
+    def extern_types_list(self):
+        """
+        custom-type-list = {custom-type, ','}, [custom-type] ;
+        """
+        if self.current_token.type == ID:
+            types_names = [DeclaredType(self.current_token.value)]
+            self.eat(ID)
+
+            while self.current_token.type is COMMA:
+                self.eat(COMMA)
+                types_names.append(DeclaredType(self.current_token.value))
+                self.eat(ID)
+        else:
+            types_names = []
+
+        return types_names
+
+    def modules_declarations(self):
+        """
+        modules-declarations = "Modules", whitespace, '{', {module-block}, '}' ;
+        """
+        self.eat(MODULES)
+        self.eat(LCURLY)
+
+        modules = []
+        while self.current_token.type != RCURLY:
+            modules.append(self.module_block())
+
+        self.eat(RCURLY)
+
+        return modules
+
+    def module_block(self):
+        """
+        module-block = name, '{', {extern-function-declaration}, '}' ;
+        """
+        module_name = self.current_token.value
+        self.eat(ID)
+        self.eat(LCURLY)
+        functions = []
+        while self.current_token.value != RCURLY:
+            functions.append(self.extern_function_declaration())
+        self.eat(RCURLY)
+
+        return ModuleDeclaration(module_name, functions)
+
+    def extern_function_declaration(self):
+        """
+        extern-function-declaration = custom-type, whitespace, name, whitespace, '(', extern-args-list, ')', whitespace, ';', ;
+        """
+        name = self.current_token.value
+        self.eat(ID)
+
+        if self.current_token.type == ID:
+            return_type, function_name = name, self.current_token.value
+            self.eat(ID)
+        else:
+            function_name = name
+            return_type = None
+
+        self.eat(LPAREN)
+        if self.current_token.type == ID:
+            types_names = [self.current_token.value]
+            self.eat(ID)
+
+            while self.current_token.type is COMMA:
+                self.eat(COMMA)
+                types_names.append(self.current_token.value)
+                self.eat(ID)
+        else:
+            types_names = []
+
+        self.eat(RPAREN)
+        self.eat(SEMI)
+
+        return ExternalFunctionDeclaration(function_name, return_type, types_names)
+
 
     def block_statement(self):
         self.eat(LCURLY)
@@ -272,7 +417,7 @@ class Parser(object):
         self.eat(LPAREN)
 
         args = []
-        while self.current_token.type in (ID, PLUS, MINUS, NUMBER, LPAREN, COMMA):
+        while self.current_token.type in (ID, PLUS, MINUS, NUMBER, LPAREN, COMMA, STRING):
             if self.current_token.type == COMMA:
                 self.eat(COMMA)
             if self.current_token.type == ID:

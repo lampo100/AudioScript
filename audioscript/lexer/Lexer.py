@@ -30,7 +30,12 @@ tokens = {'NUMBER':'NUMBER',
           'AND':'AND',
           'VAR':'VAR',
           'DEF':'DEF',
-          'RETURN':'RETURN'
+          'RETURN':'RETURN',
+          'DECLARATIONS':'DECLARATIONS',
+          'TYPES':'TYPES',
+          'MODULES':'MODULES',
+          'COLON':'COLON'
+
 }
 
 def get_tokens():
@@ -74,7 +79,10 @@ RESERVED_KEYWORDS = {
     'var': Token('VAR', 'VAR'),
     'while': Token('WHILE', 'WHILE'),
     'def': Token('DEF', 'DEF'),
-    'return': Token('RETURN', 'RETURN')
+    'return': Token('RETURN', 'RETURN'),
+    'declarations': Token('DECLARATIONS', 'DECLARATIONS'),
+    'types': Token('TYPES', 'TYPES'),
+    'modules': Token('MODULES', 'MODULES')
 }
 
 
@@ -217,6 +225,10 @@ class Lexer(object):
             if self.current_char == ';':
                 self.advance()
                 return Token(SEMI, ';')
+
+            if self.current_char == ':':
+                self.advance()
+                return Token(COLON, ':')
 
             if self.current_char == '+':
                 self.advance()

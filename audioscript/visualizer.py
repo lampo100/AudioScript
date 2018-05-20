@@ -35,9 +35,54 @@ class ASTVisualizer(NodeVisitor):
         node._num = self.ncount
         self.ncount += 1
 
-        self.visit(node.root)
-        s = '  node{} -> node{}\n'.format(node._num, node.root._num)
+        if node.declarations is not None:
+            self.visit(node.declarations)
+            s = '  node{} -> node{}\n'.format(node._num, node.declarations._num)
+            self.dot_body.append(s)
+
+        self.visit(node.code)
+        s = '  node{} -> node{}\n'.format(node._num, node.code._num)
         self.dot_body.append(s)
+
+    def visit_DeclaredType(self, node):
+        s = '  node{} [label="External type: {}"]\n'.format(self.ncount, node.name)
+        self.dot_body.append(s)
+        node._num = self.ncount
+        self.ncount += 1
+
+    def visit_ExternalFunctionDeclaration(self, node):
+        s = '  node{} [label="External Function\\nDeclaration:\\n {} {}({})"]\n'.format(self.ncount, node.return_type, node.name,
+                                                                              ', '.join(node.arguments_types))
+        self.dot_body.append(s)
+        node._num = self.ncount
+        self.ncount += 1
+
+    def visit_ModuleDeclaration(self, node):
+        s = '  node{} [label="Module: {}"]\n'.format(self.ncount, node.name)
+        self.dot_body.append(s)
+        node._num = self.ncount
+        self.ncount += 1
+
+        for function in node.functions:
+            self.visit(function)
+            s = '  node{} -> node{}\n'.format(node._num, function._num)
+            self.dot_body.append(s)
+
+    def visit_Declarations(self, node):
+        s = '  node{} [label="Declarations"]\n'.format(self.ncount)
+        self.dot_body.append(s)
+        node._num = self.ncount
+        self.ncount += 1
+
+        for ext_type in node.types:
+            self.visit(ext_type)
+            s = '  node{} -> node{}\n'.format(node._num, ext_type._num)
+            self.dot_body.append(s)
+
+        for module in node.modules:
+            self.visit(module)
+            s = '  node{} -> node{}\n'.format(node._num, module._num)
+            self.dot_body.append(s)
 
     def visit_BlockStat(self, node):
         s = '  node{} [label="Block"]\n'.format(self.ncount)

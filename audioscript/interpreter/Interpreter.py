@@ -1,6 +1,6 @@
 from lexer.Lexer import Lexer, get_tokens
 from pars.Parser import Parser
-from interpreter.symbol_table import ScopedSymbolTable, VarSymbol, FunctionSymbol
+from interpreter.symbol_table import ScopedSymbolTable, VarSymbol, FunctionSymbol, BuiltinTypeSymbol, ExternalFunctionSymbol
 
 
 globals().update(get_tokens())
@@ -19,6 +19,7 @@ class Interpreter(NodeVisitor):
     GLOBAL_SCOPE = {}
     GLOBAL_RETURN = None
     FUNCTION_CALL_RETURN_FLAG = False
+    ext_functions = {}
 
     def __init__(self, parser):
         self.parser = parser
@@ -45,12 +46,44 @@ class Interpreter(NodeVisitor):
         self.current_scope = self.global_scope
 
         # visit subtree
-        self.visit(node.root)
+        if node.declarations is not None:
+            self.visit(node.declarations)
 
+        if node.code is not None:
+            self.visit(node.code)
 
         self.current_scope = self.current_scope.enclosing_scope
         print(self.global_scope)
         print('LEAVE scope: global')
+
+    def visit_Declarations(self, node):
+        for ext_type in node.types:
+            self.visit(ext_type)
+
+        for module in node.modules:
+            self.visit(module)
+
+    def visit_DeclaredType(self, node):
+        if node.name != 'STRING' and node.name != 'NUMBER':
+            self.current_scope.insert(BuiltinTypeSymbol(node.name))
+
+    def visit_ModuleDeclaration(self, node):
+        mod = __import__(node.name)
+        for function in node.functions:
+            globals()[function.name] = mod.__getattribute__(function.name)
+            self.visit(function)
+
+    def visit_ExternalFunctionDeclaration(self, node):
+        function_name = node.name
+        return_type = node.return_type
+        args_types = node.arguments_types
+
+        if return_type is not None:
+            return_type = self.current_scope.lookup(return_type)
+
+        args_types = [self.current_scope.lookup(arg_type) for arg_type in args_types]
+
+        self.current_scope.insert(ExternalFunctionSymbol(function_name, args_types, return_type))
 
     def visit_BlockStat(self, node):
         print('ENTER scope: %s' %  "BLOCK SCOPE")
@@ -95,6 +128,11 @@ class Interpreter(NodeVisitor):
             raise Exception(
                 "Error: Unidentified function \"%s\"" % function.name
             )
+
+        if isinstance(func_symbol, ExternalFunctionSymbol):
+            func = globals()[func_symbol.name]
+            self.GLOBAL_RETURN = func(*[x.value for x in node.args])
+            return self.GLOBAL_RETURN
 
         function_scope = ScopedSymbolTable(
             scope_name="function",

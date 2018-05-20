@@ -1,11 +1,28 @@
+Declarations{
+Types: A, B, C;
+Modules{
+        math{
+        NUMBER exp(x);
+        }
+        builtins{
+        print(x);
+        }
+    }
+}
+
 def foo(){
 var x;
 x = 22;
 b = 2;
 }
 
+var z;
+z = exp(2);
+
 var b;
 foo();
+
+print("DZIALA");
 
 def foo1(a, b, c, d){
 ;
@@ -16,7 +33,7 @@ var t, d, dsadas, aa;
 aa = 3932932;
 {
  t = 8883;
- t = "dsadas"
+ t = "dsadas";
  aa = "dsadas";
  d = t + aa;
 }

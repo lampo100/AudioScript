@@ -42,13 +42,29 @@ class FunctionSymbol(Symbol):
         super(FunctionSymbol, self).__init__(name)
         self.arguments = arguments if arguments is not None else []
         self.body = body
-        self.return_value = None
 
     def __str__(self):
         return '<{class_name}(name={name}, arguments={arguments})>'.format(
             class_name=self.__class__.__name__,
             name=self.name,
             arguments=self.arguments,
+        )
+
+    __repr__ = __str__
+
+
+class ExternalFunctionSymbol(Symbol):
+    def __init__(self, name, arguments_types=None, return_type = None):
+        super(ExternalFunctionSymbol, self).__init__(name)
+        self.arguments_types = arguments_types if arguments_types is not None else []
+        self.return_type = None
+
+    def __str__(self):
+        return '<{class_name}(name={name}, arguments types={arguments}, return type={return_type})>'.format(
+            class_name=self.__class__.__name__,
+            name=self.name,
+            arguments=self.arguments_types,
+            return_type=self.return_type
         )
 
     __repr__ = __str__
