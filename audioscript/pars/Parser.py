@@ -292,7 +292,10 @@ class Parser(object):
         extern-function-declaration = custom-type, whitespace, name, whitespace, '(', extern-args-list, ')', whitespace, ';', ;
         """
         name = self.current_token.value
-        self.eat(ID)
+        if self.current_token.type == VAR:
+            self.eat(VAR)
+        else:
+            self.eat(ID)
 
         if self.current_token.type == ID:
             return_type, function_name = name, self.current_token.value
@@ -302,14 +305,20 @@ class Parser(object):
             return_type = None
 
         self.eat(LPAREN)
-        if self.current_token.type == ID:
+        if self.current_token.type == ID or self.current_token.type == VAR:
             types_names = [self.current_token.value]
-            self.eat(ID)
+            if self.current_token.type == ID:
+                self.eat(ID)
+            else:
+                self.eat(VAR)
 
             while self.current_token.type is COMMA:
                 self.eat(COMMA)
                 types_names.append(self.current_token.value)
-                self.eat(ID)
+                if self.current_token.type == ID:
+                    self.eat(ID)
+                else:
+                    self.eat(VAR)
         else:
             types_names = []
 
@@ -350,11 +359,8 @@ class Parser(object):
 	    | if-statement
 	    | empty, semi ;
         """
-        if self.current_token.type == ID:
+        if self.current_token.type == ID or self.current_token.type == VAR:
             node = self.factorized()
-            self.eat(SEMI)
-        elif self.current_token.type == VAR:
-            node = self.variable_declaration()
             self.eat(SEMI)
         elif self.current_token.type == DEF:
             self.eat(DEF)
@@ -380,6 +386,12 @@ class Parser(object):
         return node
 
     def factorized(self):
+        if self.current_token.type == VAR:
+            type = self.current_token
+            self.eat(VAR)
+            names = self.variable_declaration()
+            return VarDeclaration(type, names)
+
         variable = self.variable()
         if self.current_token.type == ASSIGN:
             token = self.current_token
@@ -393,6 +405,12 @@ class Parser(object):
         elif self.current_token.type == LPAREN:
             args = self.function_call()
             return FunctionCall(variable, args)
+        elif self.current_token.type == ID:
+            type = variable
+            names = self.variable_declaration()
+            return VarDeclaration(type, names)
+        else:
+            return Var(variable)
 
     def if_statement(self):
         self.eat(IF)
@@ -485,11 +503,8 @@ class Parser(object):
 
     def variable_declaration(self):
         """
-        variable-declaration = var-type, identifier, {comma, identifier} ;
+        variable-declaration = identifier, {comma, identifier} ;
         """
-        # TODO CHANGE TO TYPE TOKEN AFTER ADDING DECLARED TYPES
-        type = self.current_token
-        self.eat(VAR)
         names = [self.current_token]
         self.eat(ID)
 
@@ -497,7 +512,9 @@ class Parser(object):
             self.eat(COMMA)
             names.append(self.current_token)
             self.eat(ID)
-        return VarDeclaration(type, names)
+        return names
+
+
 
     def assignment_statement(self):
         """
@@ -575,8 +592,7 @@ class Parser(object):
         else:
             self.error("CONDITIONAL-TOKEN")
 
-        token = self.current_token
-        if token.type == ID:
+        if self.current_token.type == ID:
             node = self.factorized()
         elif self.current_token.type == NUMBER or self.current_token.type == LPAREN or self.current_token.type == MINUS or self.current_token.type == PLUS:
             node = self.numeric_value()

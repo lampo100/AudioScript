@@ -1,8 +1,9 @@
 from collections import OrderedDict
+import numbers
 
 
 class Symbol(object):
-    def __init__(self, name, type=None, value=None):
+    def __init__(self, name, type=None, value=0):
         self.name = name
         self.type = type
         self.value = value
@@ -36,6 +37,8 @@ class BuiltinTypeSymbol(Symbol):
             name=self.name,
         )
 
+    __repr__ = __str__
+
 
 class FunctionSymbol(Symbol):
     def __init__(self, name, body, arguments=None):
@@ -57,7 +60,7 @@ class ExternalFunctionSymbol(Symbol):
     def __init__(self, name, arguments_types=None, return_type = None):
         super(ExternalFunctionSymbol, self).__init__(name)
         self.arguments_types = arguments_types if arguments_types is not None else []
-        self.return_type = None
+        self.return_type = return_type
 
     def __str__(self):
         return '<{class_name}(name={name}, arguments types={arguments}, return type={return_type})>'.format(

@@ -1,7 +1,7 @@
 from lexer.Lexer import Lexer, get_tokens
-from pars.Parser import Parser
+from pars.Parser import Parser, Var
 from interpreter.symbol_table import ScopedSymbolTable, VarSymbol, FunctionSymbol, BuiltinTypeSymbol, ExternalFunctionSymbol
-
+import numbers
 
 globals().update(get_tokens())
 
@@ -16,9 +16,24 @@ class NodeVisitor(object):
 
 class Interpreter(NodeVisitor):
 
+
+    class RetType():
+        def __init__(self):
+            self.type = "VAR"
+
+        def __get__(self, instance, owner):
+            temp = self.type
+            self.type = "VAR"
+            return temp
+
+        def __set__(self, instance, value):
+            self.type = value
+
     GLOBAL_SCOPE = {}
     GLOBAL_RETURN = None
     FUNCTION_CALL_RETURN_FLAG = False
+    RETURNED_FUNCTION_TYPE = RetType()
+    RETURNED_VARIABLE_TYPE = RetType()
     ext_functions = {}
 
     def __init__(self, parser):
@@ -80,10 +95,19 @@ class Interpreter(NodeVisitor):
 
         if return_type is not None:
             return_type = self.current_scope.lookup(return_type)
+        else:
+            return_type = BuiltinTypeSymbol("NULL")
 
-        args_types = [self.current_scope.lookup(arg_type) for arg_type in args_types]
+        args_symbols = []
+        for arg_type in args_types:
+            arg_sym = self.current_scope.lookup(arg_type)
+            if arg_sym is None:
+                raise TypeError(
+                    "Type \"{}\" was not declared and is being used in function \"{}\" declaration".format(arg_type, function_name)
+                )
+            args_symbols.append(arg_sym)
 
-        self.current_scope.insert(ExternalFunctionSymbol(function_name, args_types, return_type))
+        self.current_scope.insert(ExternalFunctionSymbol(function_name, args_symbols, return_type))
 
     def visit_BlockStat(self, node):
         print('ENTER scope: %s' %  "BLOCK SCOPE")
@@ -131,8 +155,33 @@ class Interpreter(NodeVisitor):
 
         if isinstance(func_symbol, ExternalFunctionSymbol):
             func = globals()[func_symbol.name]
-            self.GLOBAL_RETURN = func(*[x.value for x in node.args])
-            return self.GLOBAL_RETURN
+            arguments = []
+            for arg, formal_arg in zip(node.args, func_symbol.arguments_types):
+                # when it is a variable
+                if isinstance(arg, Var):
+                    arg_symbol = self.current_scope.lookup(arg.value)
+                    if formal_arg.name == 'NUMBER' and not isinstance(arg_symbol.value, numbers.Complex):
+                        raise TypeError(
+                            "TypeError: Expected {} and got {}".format(formal_arg.name, 'STRING'))
+                    elif formal_arg.name == 'STRING' and isinstance(arg_symbol.value, numbers.Complex):
+                        raise TypeError(
+                            "TypeError: Expected {} and got {}".format(formal_arg.name, 'NUMBER'))
+                    elif formal_arg.name != 'NUMBER' and formal_arg.name != 'STRING' and arg_symbol.type.name != formal_arg.name:
+                        raise TypeError("TypeError: Expected {} and got {}".format(formal_arg.name, arg_symbol.type))
+                    else:
+                        arguments.append(arg_symbol.value)
+                elif arg.token.type == NUMBER:
+                    if formal_arg.name != NUMBER and formal_arg.name != 'VAR':
+                        raise TypeError("TypeError: Expected {} and got {}".format(formal_arg.name, 'NUMBER'))
+                    else:
+                        arguments.append(arg.value)
+                elif arg.token.type == STRING:
+                    if formal_arg.name != STRING and formal_arg.name != 'VAR':
+                        raise TypeError("TypeError: Expected {} and got {}".format(formal_arg.name, 'STRING'))
+                    else:
+                        arguments.append(arg.value)
+
+            return VarSymbol(None, func_symbol.return_type.name, func(*arguments))
 
         function_scope = ScopedSymbolTable(
             scope_name="function",
@@ -151,29 +200,34 @@ class Interpreter(NodeVisitor):
         return self.GLOBAL_RETURN
 
     def visit_BinOp(self, node):
+        left = self.visit(node.left)
+        right = self.visit(node.right)
+
         if node.op.type == PLUS:
-            return self.visit(node.left) + self.visit(node.right)
+            return VarSymbol(None, left.type, left.value + right.value)
         elif node.op.type == MINUS:
-            return self.visit(node.left) - self.visit(node.right)
+            return VarSymbol(None, left.type, left.value - right.value)
         elif node.op.type == MUL:
-            return self.visit(node.left) * self.visit(node.right)
+            return VarSymbol(None, left.type, left.value * right.value)
         elif node.op.type == DIV:
-            return self.visit(node.left) / self.visit(node.right)
+            return VarSymbol(None, left.type, left.value / right.value)
 
         self.GLOBAL_RETURN = None
 
     def visit_Num(self, node):
-        return node.value
+        return VarSymbol(None, NUMBER, node.value)
 
     def visit_String(self, node):
-        return node.value
+        return VarSymbol(None, STRING, node.value)
 
     def visit_UnaryOp(self, node):
         op = node.op.type
+        if node.type != NUMBER:
+            raise TypeError("Unary operators can be used only on NUMBER")
         if op == PLUS:
-            return +self.visit(node.value)
+            return VarSymbol(None, NUMBER, +node.value)
         elif op == MINUS:
-            return -self.visit(node.value)
+            return VarSymbol(None, NUMBER, -node.value)
 
     def visit_If(self, node):
         cond_node = node.cond
@@ -206,7 +260,12 @@ class Interpreter(NodeVisitor):
             raise Exception(
                 "Error: Unidentified variable \"%s\"" % var_name
             )
-        var_symbol.value = value
+        if var_symbol.type.name == 'VAR' and (value.type != 'STRING' and value.type != 'NUMBER' and value.type != 'VAR'):
+            raise TypeError("TypeError: Expected {} and got {}".format('VAR', value.type))
+        elif var_symbol.type.name != 'VAR' and var_symbol.type.name != value.type:
+            raise TypeError("TypeError: Expected {} and got {}".format(var_symbol.type, value.type))
+
+        var_symbol.value = value.value
         self.GLOBAL_RETURN = None
 
     def visit_VarDeclaration(self, node):
@@ -242,28 +301,27 @@ class Interpreter(NodeVisitor):
             raise Exception(
                 "Error: Symbol(identifier) not found '%s'" % var_name
             )
-        return var_symbol.value
-
-    def visit_Function(self, node):
-        arguments = node.arguments
+        return VarSymbol(None, var_symbol.type.name, var_symbol.value)
 
     def visit_ConditionalVal(self, node):
+        lval = self.visit(node.left).value
+        rval = self.visit(node.right).value
         if node.op.type == EQ:
-            return self.visit(node.left) == self.visit(node.right)
+            return lval == rval
         elif node.op.type == NEQ:
-            return self.visit(node.left) != self.visit(node.right)
+            return lval != rval
         elif node.op.type == LT:
-            return self.visit(node.left) < self.visit(node.right)
+            return lval < rval
         elif node.op.type == MT:
-            return self.visit(node.left) > self.visit(node.right)
+            return lval > rval
         elif node.op.type == LEQT:
-            return self.visit(node.left) <= self.visit(node.right)
+            return lval <= rval
         elif node.op.type == MEQT:
-            return self.visit(node.left) >= self.visit(node.right)
+            return lval >= rval
         elif node.op.type == AND:
-            return self.visit(node.left) and self.visit(node.right)
+            return lval and rval
         elif node.op.type == OR:
-            return self.visit(node.left) or self.visit(node.right)
+            return lval or rval
 
     def visit_NoOp(self, node):
         pass
