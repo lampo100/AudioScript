@@ -1,0 +1,12 @@
+Declarations{
+    Modules{
+        math{
+            VAR exp(VAR);
+        }
+    }
+}
+def foo(){
+return -15;
+}
+var x;
+x = exp(15 + foo());

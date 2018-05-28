@@ -1,0 +1,18 @@
+Declarations{
+Modules{
+        builtins{
+            print(VAR);
+        }
+    }
+}
+var a, b;
+a = 0;
+b = -11;
+
+if(a == 0 and b == -11)
+    print("if and and work");
+
+while(a == 22 or b < 0){
+    print("while and or also work");
+    b = b + 1;
+}

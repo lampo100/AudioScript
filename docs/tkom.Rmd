@@ -1,0 +1,466 @@
+---
+title: "AudioScript"
+author: "Kacper Kamiñski"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Ogólny opis
+
+Jêzyk ten jest jêzykiem skryptowym, opartym na jêzyku Python, którego g³ównym za³o¿eniem jest zautomatyzowanie wielu prostych czynnoœci, jak np. wywo³ywanie tego samego bloku funkcji na wielu plikach tego samego typu albo szeroko pojêtym przetwarzaniu plików dŸwiêkowych. W tym celu jêzyk ten wyposa¿ony jest w statyczne typowanie oraz w dynamiczne importowanie funkcji Pythonowych. Dziêki temu unikniête zostan¹ b³êdy zwi¹zane z pracowaniem na nieodpowiednich typach obiektów maj¹c jednoczeœnie mo¿liwoœæ u¿ywania obszernych bibliotek Pythona.
+
+# Opis jêzyka
+
+## Gramatyka EBNF
+
+```
+program = declarations, statement-list ;
+
+declarations = empty | dec, lcurly, types-declaration, modules-declaration, rcurly ; 
+
+types-declaration = types, empty | identifier, {comma, identifier} ; 
+
+modules-declaration = empty | { identifier, lcurly, functions-declarations, rcurly } ;
+
+functions-declarations = empty | { declared-function, semi } ;
+
+declared-function = type-spec, identifier, lparen, declared-args, rparen ;
+
+declared-args = empty | type-spec, {comma, type-spec} ;
+
+type-spec = number | string | identifier ;
+
+var-type = type-spec | var ;
+
+var = "var" ;
+
+types = "Types" ;
+
+number = "number" ;
+
+string = "string" ;
+
+dec = "Declarations" ;
+
+comma = "," ;
+
+statement-list = {statement}* ;
+
+statement = block-statement | assignment-statement, semi | conditional-statement | function-call | empty ;
+
+block-statement = lcurly, statement-list, rcurly ;
+
+assignment-statement = variable, assign, (numeric-value | string-value | nill | function-call) ;
+
+conditional-statement = (if-statement | while-statement), block-statement ; 
+
+variable-declaration = var-type, identifier, {scomma, identifier} ; 
+
+nill = SOME_VALUE ;
+
+empty = ;
+
+variable = indentifier ;
+
+lcurly = "{" ;
+
+rcurly = "}" ;
+
+semi = ";" ;
+
+assign = "=" ;
+
+cond-exp = cond-factor, {higher-logic-operator, cond-factor} ;
+
+cond-value = numeric-value, lower-logic-operator, numeric-value ;
+
+string-value = '"' , { all-characters - '"' }, '"' ;
+
+numeric-value = term, {math-sign, term} ;
+
+term = factor, {binary-math-operator, factor} ;
+
+factor = unary-operator, factor | integer | float | variable | function-call | lparen, numeric-value, rparen ;
+
+integer = digit, { digit | zero} ;
+
+float = digit, { digit | zero }, ".", ( digit | zero ), {digit | zero} ; 
+
+math-sign = "+" | "-" ;
+
+binary-operator = "*" | "/" | "%" ;
+
+lower-logic-op = "<" | "<=" | ">" | ">=" |
+  "==" | "!=" ;
+
+higher-logic-op = "and" | "or" ;
+
+alphabetic-character = "A" | "B" | "C" | "D" | "E" | "F" | "G"
+                      | "H" | "I" | "J" | "K" | "L" | "M" | "N"
+                      | "O" | "P" | "Q" | "R" | "S" | "T" | "U"
+                      | "V" | "W" | "X" | "Y" | "Z" ;
+
+digit = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+
+zero = "0" ;
+
+lparen = "(" ;
+
+rparen = ")" ;
+```
+
+## Czêœæ deklaracji typów i funkcji
+
+Jest to pierwsza, opcjonalna czêœæ ka¿dego skryptu. Znajduj¹ siê w niej deklaracje typów które wystêpowaæ bêd¹ w skrypcie, a tak¿e deklaracje funkcji które maj¹ zostaæ dynamicznie do³¹czone do skryptu. Ka¿da z takich funkcji musi zawieraæ informacjê o typach argumentów które przyjmuje, a tak¿e o typie zwracanej wartoœci. Je¿eli jakiœ z u¿ywanych typów nie jest wbudowany w AudioScript, to musia³ byæ on wymieniony w czêœci deklaracji typów.
+
+Ca³y blok ma nastêpuj¹c¹ postaæ:
+```
+Declarations{
+Types: A, B, C;
+Modules{
+        math{
+          A exp(NUMBER);
+        }
+        
+        builtins{
+          print(VAR);
+        }
+    }
+}
+```
+
+Id¹c od zewn¹trz mamy blok `Declarations` który zawiera liniê `Types` zawieraj¹c¹ deklaracjê wszystkich typów "zewnêtrznych". Typy te s¹ potencjalnie u¿ywane przez za³adowane funkcje. W czêœci kodu mog¹ one zostaæ u¿yte do zadeklarowania zmiennych, dla których sprawdzana bêdzie poprawnoœæ ich typu. Przyk³adowo:
+```
+A first;
+var second;
+
+first = exp(22);
+second = first;
+```
+
+
+W powy¿szym kodzie deklarujemy zmienn¹ typu `A`. W drugiej linii przypisujemy do niej wynik wykonania `exp(22)`. Interpreter wie z deklaracji funkcji w bloku `Declarations` ¿e zwraca ona wartoœæ typu `A`, dlatego operacja zostaje wykonana. W trzeciej linii widzimy jednak¿e próbê przypisania do `second`, wartoœci przechowywanej w `first`. Interpreter zg³osi tutaj b³¹d, poniewa¿ nie mo¿e zostaæ przypisana do zmiennej typu `VAR`.
+
+![](./p1.png)
+
+
+Id¹c dalej mamy blok `Functions` w którym zawieraj¹ siê bloki modu³ów. Modu³ identyfikowany jest poprzez nazwê i ograniczony jest nawiasami klamrowymi. W samym bloku znajduj¹ siê deklaracje funkcji maj¹ce postaæ `"zwracana wartoœæ" "nazwa funkcji"(typy argumentów);`
+Ka¿da z funkcji zostanie do³¹czona dynamicznie do skryptu, na podstawie nazwy modu³u Pythonowego w który siê znajduje. Przyk³adowo do skryptu w którym znajduje siê poni¿sza deklaracja modu³u zaimportowana zostanie funkcja funkcja `floor` z modu³u `math`.
+```
+math{
+number floor(number);
+}
+```
+
+Do³¹czanie funkcji przez generator mo¿liwe jest dziêki funkcji `__import__()` w Pythonie która umo¿liwia dynamiczne za³adowanie modu³u. Nastêpnie u¿ywaj¹c funkcji `getattr` mo¿emy dostaæ po¿¹dan¹ funkcjê. Dla naszego wczeœniejszego przyk³adu sprowadzi siê to do poni¿szego kodu.
+```
+math = __import__("math")
+floor = getattr(math, "floor")
+```
+
+Nazwy funkcji(nawet w ró¿nych modu³ach) musz¹ byæ unikalne w celu unikniêcia konfliktów.
+
+Sprawdzanie typu zmiennych zostanie zaimplementowane z u¿yciem funkcji `type()`. Zwraca ona typ podanego obiektu.
+
+## Czêœæ kodu
+
+W drugiej, równie¿ opcjonalnej czêœci skryptu znajduje siê kod do wykonania. Czêœæ ta zaczyna siê od pierwszej linii po bloku `Declarations`. Mo¿e sk³adaæ siê z definicji funkcji, operacji, deklaracji zmiennych, wywo³añ funkcji itp.
+
+### Definicja funkcji
+
+W bloku kodu mo¿liwe jest zdefiniowanie nowych funkcji z u¿yciem s³owa kluczowego `function`. W przeciwieñstwie do dynamicznie do³¹czanych funkcji z bloku `Declarations` nie musz¹ one okreœlaæ wprost typu przyjmowanych argumentów oraz zwracanych wartoœci. Blok funkcji sk³ada siê ze s³owa kluczowego `function` po którym nastêpuje jej nazwa, lista argumentów w nawiasie oraz nawiasy klamrowe w których mog¹ znajdowaæ siê dalsze instrukcje. Nazwy funkcji musza byæ unikalne.
+`function foo(a, b, c){...}`
+
+### Wbudowane typy
+
+Sam jêzyk zawieraæ bêdzie nastêpuj¹ce wbudowane typy:
+
+* NUMBER - Typ ten reprezentuje liczby zmiennoprzecinkowe.
+* STRING - Typ ten reprezentuje ci¹g znakowy.
+
+### Instrukcje
+
+Instrukcje sk³adaj¹ siê ze zmiennych, operatorów lub/i wywo³añ funkcji. Ka¿da instrukcja musi byæ zakoñczona œrednikiem.
+
+#### Matematyczne operatory binarne
+
+* `+` : dodawanie
+* `-` : odejmowanie
+* `/` : dzielenie
+* `*` : mno¿enie
+
+Operatory te mog¹ byæ u¿ywane na zmiennych typu `NUMBER`(operatory `+` oraz `*` mog¹ byæ tak¿e u¿yte na zmiennych typu STRING.
+
+Poni¿ej widaæ kod prezentuj¹cy wykorzystanie wszystkich operatorów:
+```
+var a, b, c, d, e, f;
+a = 22.222;
+b = 3;
+c = a + b;
+d = a - b;
+e = a * b;
+f = a / b;
+````
+
+A tak¿e wynik dzia³ania powy¿szego kodu:
+
+![](./p2.png)
+
+#### Operatory logiczne
+
+*  `==` : operator równoœci
+* `!=` : operator nierównoœci
+* `<` : operator mniejszoœci
+* `>` : operator wiêkszoœci
+* `<=` : operator mniejszy lub równy
+* `>=` : operator wiêkszy lub równy
+* `and` : koniunkcja logiczna
+* `or` : alternatywa logiczna
+
+Operatory te mog¹ byæ u¿ywane na zmiennych typu `number`. Operatory `!=` oraz `==` mog¹ byæ tak¿e u¿ywane na zmiennych typu `string`, porównywane jest wtedy czy ci¹gi znakowe s¹ lub nie s¹ identyczne. Mog¹ byæ one u¿yte tak¿e ze zmienn¹ typu `null`. Wynikiem porównania `null` z jakimkolwiek innym obiektem poza `null` jest zawsze fa³sz. Operatory logiczne mog¹ byæ u¿ywane w kontekœcie instrukcji warunkowej `if` oraz instrukcji pêtli `while`, przyk³adowo dla poni¿szego kodu:
+
+```
+Declarations{
+Modules{
+        builtins{
+            print(VAR);
+        }
+    }
+}
+var a, b;
+a = 0;
+b = -11;
+
+if(a == 0 and b == -11)
+    print("if and and work");
+
+while(a == 22 or b < 0){
+    print("while and or also work");
+    b = b + 1;
+}
+
+```
+Wynik dzia³ania mo¿emy zaobserwowaæ na poni¿szym zdjêciu:
+
+![](./p3.png)
+
+
+  
+
+Instrukcja warunkowa `if` wykona kod zawarty w swoim bloku instrukcji je¿eli wyra¿enie w jej nawiasach zostanie ewaluowane jako prawda. W przeciwnym razie blok `if` jest pomijany.
+
+Instrukcja pêtli `while` bêdzie wykonywa³a kod zawarty w swoim bloku instrukcji, dopóki wyra¿enie w jej nawiasach zostanie ewaluowane jako prawda.
+
+#### Inne
+
+`=` : operator przypisania  
+`#` : komentarz  
+
+Operator przypisania s³u¿y do przypisania wartoœci, b¹dŸ obiektu do zmiennej.
+Symbol `#` mówi ¿e wszystko co wystêpuje po nim w danej linii ma zostaæ pominiête.
+
+### Deklaracja zmiennych
+
+Deklaracja odbywa siê albo poprzez podanie jednego z zadeklarowanych w czêœci `Declarations` typów, a nastêpnie nazwy zmiennej, lub nazwy wielu zmiennych tego typu oddzielonych od siebie przecinkami oraz zakoñczenie deklaracji œrednikiem. Przyk³adowo `A zmienna; Lista x, y, z;`.
+Deklaracja zmiennej mo¿e siê odbyæ tak¿e poprzez podanie s³owa kluczowego `var`, a nastêpnie podanie nazwy, b¹dŸ wielu nazw i œrednika. Przyk³adowo `var a, b, c;`.
+
+W pierwszym przypadku przy przypisywaniu do danej zmiennej wartoœci, b¹dŸ obiektu sprawdzony zostanie typ przypisywanej wartoœci lub obiektu i w razie niezgodnoœci z typem zmiennej zg³oszenie b³êdu. Tak¿e przy przekazywaniu zmiennej jako argument funkcji zg³oszony zostanie b³¹d je¿eli nie zgadza siê ona z typem argumentu.
+
+W drugim przypadku otrzymamy zmienn¹ która mo¿e przechowywaæ jeden z typów podstawowych jêzyka. Jest to rozwi¹zanie analogiczne co w jêzyku Python. Ka¿da taka zmienna mo¿e przechowywaæ dowolny obiekt je¿eli ma on jeden z podstawowych typów, przyk³adowo:
+```
+var x;
+x = 3; # Przypisujemy wartoœæ 3 (typ number)
+x = "Abc" # A nastêpnie przypisujemy ci¹g znakowy "Abc"
+```
+
+Do takiej zmiennej nie da siê jednak¿e przypisaæ jednego z typów obcych z bloku `Declarations`.
+```
+B a;
+var x;
+a = function2();
+x = a; # ERROR
+```
+
+Za jednym zamachem mo¿emy tak¿e zadeklarowaæ wiele zmiennych danego typu:
+```
+var x, y, b, s;
+A po, pp, pq, pw;
+```
+
+Niedozwolone jest jednak¿e inicjalizowanie zmiennej, nale¿y najpierw dokonaæ deklaracji, a nastêpnie przypisaæ wartoœæ:
+```
+var x= 4; # B£¥D
+var y;
+y = 5; # OK
+```
+
+Przyk³adowo dla:
+```
+var x, y, z, t, p;
+x = 1;
+y = 2;
+```
+Otrzymujemy nastêpuj¹c¹ tablicê symboli:
+
+![](./p4.png)
+
+
+### Wywo³anie funkcji
+
+Wywo³anie funkcji odbywa siê poprzez podanie nazwy funkcji, po czym podaniu argumentów funkcji.
+```
+var x = 2;
+foo(x, 2, "aa");
+```
+
+Wartoœæ zwracana przez funkcjê mo¿e byæ przypisana do zmiennej.
+```
+var z = foo(2);
+```
+
+Argumentami funkcji mog¹ byæ dowolne wyra¿enia których typ wartoœci po ewaluowaniu zgadza siê z zadeklarowanym typem argumentu.
+```
+Declarations{
+    Modules{
+        math{
+            VAR exp(VAR);
+        }
+    }
+}
+def foo(){
+return -15;
+}
+var x;
+x = exp(15 + foo());
+```
+Wynik:
+
+![](./p5.png)
+
+### Zakres nazw
+
+Ka¿dy blok nawiasów klamrowych tworzy nowy zakres widocznoœci nazwy, zawieraj¹cy siê w tej w której nawiasy zosta³y umieszczone. Najbardziej zewnêtrzny zakres jest przestrzeñ globalna.   
+Nazwy(np. zmiennych lub funkcji) szukane s¹ zaczynaj¹c od obecnego zakresu i w przypadku nie znalezienia ich, nastêpuje próba znalezienia ich w szerszym zasiêgu(a¿ do przestrzeni globalnej).  
+Nazwy w zakresach na ni¿szym poziomie hierarchii nie s¹ dostêpne w bardziej zewnêtrznych przestrzeniach nazw. Przyk³adowo:
+```
+var a;
+{
+var x = 1;
+}
+a = x; # B³¹d, nie znaleziono x!
+```
+Nazwy zdefiniowane w bardziej zewnêtrznych przestrzeniach nazw s¹ jednak¿e dostêpne w wewnêtrznych przestrzeniach nazw.
+```
+var a = 3;
+{
+var x = a; # Dozwolone, a jest dostêpne w tym zasiêgu
+}
+```
+
+Nazwy(ale nie obiekty) przestaj¹ byæ dostêpne po wyjœciu z zakresu w którym zosta³y zadeklarowane.
+
+Wystêpuje tak¿e przys³anianie nazw zewnêtrznych przez nazwy wewnêtrzne. Przyk³adowo dla kodu:
+```
+var x;
+x = 5;
+{
+  var x;
+  x = 2;
+}
+var z;
+z = 1;
+```
+
+Otrzymujemy podane tablice symboli:
+
+![](./p6.png)
+
+
+# Architektura Interpretera
+
+Sk³adaæ siê on bêdzie z 3 modu³ów: leksera maj¹cego na celu podzielenie czytanego tekstu (przekazanych poleceñ) na tokeny; parsera przyjmuj¹cego tokeny tworzone przez lekser i tworz¹cego na ich podstawie drzewo sk³adniowe oraz interpretera który przyjmowaæ bêdzie tworzone drzewo i wykonywa³ na jego podstawie odpowiednie akcje semantyczne.
+
+Na poni¿szym diagramie zaprezentowana jest komunikacja odpowiednich modu³ów.
+
+![](./p7.png)
+
+## Lekser
+
+Modu³ ten odpowiada za dzielenie czytanego strumienia tekstu na tokeny. 
+Ka¿dy token jest jednym z symboli terminalnych w gramatyce naszego basha.
+Lekser czyta znak po znaku strumieñ tekstu który zostanie do niego przekazany i kiedy uda mu siê dopasowaæ uzyskany ci¹g do jednego z wyra¿eñ regularnych definiuj¹cych któryœ z Tokenów zostaje on utworzony i zwrócony.
+
+## Parser
+
+Modu³ ten odpowiada za budowê AST - abstrakcyjnego drzewa sk³adniowego. Bêdzie on typu rekursywnie-zstêpuj¹cego.
+Parser przyjmuje po kolei tokeny zwracane przez lekser a nastêpnie na podstawie gramatyki naszego basha buduje kolejne wêz³y drzewa. Ka¿dy wêze³ drzewa odpowiednia jakiejœ czêœci sk³adni jêzyka. Przyk³adowo dla poni¿szego kodu:
+
+```
+Declarations{
+Types: A, B, C;
+Modules{
+        math{
+        A exp(NUMBER);
+        VAR ceil(A);
+        }
+        builtins{
+        print(VAR);
+        }
+    }
+}
+A first;
+var second;
+
+first = exp(22);
+second = first;
+```
+
+Wygenerowane zostanie poni¿sze drzewo:
+
+![](./p8.png)
+
+## Interpreter
+
+Modu³ ten odpowiada za przejœcie po przekazanym abstrakcyjnym drzewie sk³adniowym i wykonanie odpowiednich akcji semantycznych.
+
+Interpreter przechodzi po drzewie AST stosuj¹c metodê przechodzenia w g³¹b, dlatego te¿ jego dzia³anie zaczyna siê od korzenia drzewa AST.
+
+
+```
+def interpret():
+   tree = parser.parse() // Interpreter pobiera z parsera drzewo AST
+   visit(tree) // Nastêpnie zaczyna przechodzenie po nim
+'''
+
+Ka¿demu typowi wêz³a w naszym drzewie odpowiadaæ bêdzie jedna funkcja wykonuj¹ca odpowiedni¹ akcjê semantyczn¹.
+
+Przyk³adowo dla wczeœniej wymienionego wêz³a Assign:
+
+'''
+def visit_Assign():
+   var_name = node.left.value
+   value = node.right.value
+   value_type = node.right.type
+   variables_scope.assign(var_name, value, value_type)
+'''
+
+Jak widaæ powy¿ej z lewego wêz³a czytana jest nazwa zmiennej, z prawego typ wartoœci przypisanej do zmiennej oraz jej wartoœæ. Nastêpnie wartoœci te zostaj¹ zapisane w jakiejœ strukturze przechowuj¹cej zmienne w naszej obecnej przestrzeni zmiennych.
+
+
+
+## Wyj¹tki
+
+Podczas parsowania lub wykonywania skryptu mo¿e dojœæ do sytuacji b³êdnych, nieprzewidzianych przez programistê. Sytuacje takie zg³aszane bêd¹ przez b³¹d. Wyj¹tki zostaj¹ wyœwietlone w specjalnym komunikacie, po czym zatrzymywane jest wykonanie skryptu. Poni¿ej znajduje siê lista mo¿liwych wyj¹tków.
+
+* `SyntaxError` - Zg³aszany jest on przez parser w momencie kiedy natrafia on na fragment kodu, który nie jest poprawny gramatycznie.
+* `ArithmeticError` - Zg³aszany jest on kiedy dojdzie do niepoprawnej operacji matematycznej, takiej jak dzielenie przez zero.
+* `ImportError` - Zg³aszany jest on kiedy nie uda siê znaleŸæ i do³¹czyæ jednej z funkcji w bloku `Declarations`
+* `NameError` - Zg³aszany jest on kiedy podana nazwa nie wystêpuje w danej przestrzeni nazw.
+* `TypeError` - Zg³aszany jest on kiedy przypisujemy do zmiennej wartoœæ lub obiekt która nie jest zgodna z typem danej zmiennej, b¹dŸ kiedy podajemy zmienn¹ o niepoprawnym typie jako argument funkcji.
+* `PythonError` - Zg³aszany jest on kiedy jedna z do³¹czonych funkcji zg³osi jakiœ wyj¹tek.
+
+# Uruchamianie skryptu
+
+Aby uruchomiæ skrypt, nale¿y uruchomiæ interpreter i przekazaæ œcie¿kê do niego w argumencie, przyk³adowo: `python Interpreter code`.

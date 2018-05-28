@@ -225,8 +225,8 @@ class ASTVisualizer(NodeVisitor):
         node._num = self.ncount
         self.ncount += 1
 
-        self.visit(node.expr)
-        s = '  node{} -> node{}\n'.format(node._num, node.expr._num)
+        self.visit(node.value)
+        s = '  node{} -> node{}\n'.format(node._num, node.value._num)
         self.dot_body.append(s)
 
     def visit_Assign(self, node):

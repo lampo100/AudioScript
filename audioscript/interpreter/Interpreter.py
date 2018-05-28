@@ -1,7 +1,8 @@
-from lexer.Lexer import Lexer, get_tokens
-from pars.Parser import Parser, Var
+from audioscript.lexer.Lexer import Lexer, get_tokens
+from audioscript.pars.Parser import Parser, Var
 from interpreter.symbol_table import ScopedSymbolTable, VarSymbol, FunctionSymbol, BuiltinTypeSymbol, ExternalFunctionSymbol
 import numbers
+import sys
 
 globals().update(get_tokens())
 
@@ -110,7 +111,7 @@ class Interpreter(NodeVisitor):
         self.current_scope.insert(ExternalFunctionSymbol(function_name, args_symbols, return_type))
 
     def visit_BlockStat(self, node):
-        print('ENTER scope: %s' %  "BLOCK SCOPE")
+        #print('ENTER scope: %s' %  "BLOCK SCOPE")
         # Scope for parameters and local variables
         block_scope = ScopedSymbolTable(
             scope_name="block",
@@ -121,16 +122,16 @@ class Interpreter(NodeVisitor):
 
         self.visit(node.list)
 
-        print(block_scope)
+        #print(block_scope)
         self.current_scope = block_scope.enclosing_scope
-        print("LEAVE scope: BLOCK SCOPE")
+        #print("LEAVE scope: BLOCK SCOPE")
 
     def visit_StatList(self, node):
         """
         statement-list = {statement}* ;
         """
         for statement in node.statements:
-            print(self.visit(statement))
+            self.visit(statement)
 
     def visit_FunctionDeclaration(self, node):
         name = node.name
@@ -153,10 +154,14 @@ class Interpreter(NodeVisitor):
                 "Error: Unidentified function \"%s\"" % function.name
             )
 
+        values = []
+        for arg in node.args:
+            values.append(self.visit(arg))
+
         if isinstance(func_symbol, ExternalFunctionSymbol):
             func = globals()[func_symbol.name]
             arguments = []
-            for arg, formal_arg in zip(node.args, func_symbol.arguments_types):
+            for arg, formal_arg, v in zip(node.args, func_symbol.arguments_types, values):
                 # when it is a variable
                 if isinstance(arg, Var):
                     arg_symbol = self.current_scope.lookup(arg.value)
@@ -170,16 +175,16 @@ class Interpreter(NodeVisitor):
                         raise TypeError("TypeError: Expected {} and got {}".format(formal_arg.name, arg_symbol.type))
                     else:
                         arguments.append(arg_symbol.value)
-                elif arg.token.type == NUMBER:
+                elif v.type == NUMBER or v.type == VAR:
                     if formal_arg.name != NUMBER and formal_arg.name != 'VAR':
                         raise TypeError("TypeError: Expected {} and got {}".format(formal_arg.name, 'NUMBER'))
                     else:
-                        arguments.append(arg.value)
-                elif arg.token.type == STRING:
+                        arguments.append(v.value)
+                elif v.type == STRING or v.type == VAR:
                     if formal_arg.name != STRING and formal_arg.name != 'VAR':
                         raise TypeError("TypeError: Expected {} and got {}".format(formal_arg.name, 'STRING'))
                     else:
-                        arguments.append(arg.value)
+                        arguments.append(v.value)
 
             return VarSymbol(None, func_symbol.return_type.name, func(*arguments))
 
@@ -222,12 +227,10 @@ class Interpreter(NodeVisitor):
 
     def visit_UnaryOp(self, node):
         op = node.op.type
-        if node.type != NUMBER:
-            raise TypeError("Unary operators can be used only on NUMBER")
         if op == PLUS:
-            return VarSymbol(None, NUMBER, +node.value)
+            return VarSymbol(None, NUMBER, +node.value.value)
         elif op == MINUS:
-            return VarSymbol(None, NUMBER, -node.value)
+            return VarSymbol(None, NUMBER, -node.value.value)
 
     def visit_If(self, node):
         cond_node = node.cond
@@ -299,13 +302,19 @@ class Interpreter(NodeVisitor):
         var_symbol = self.current_scope.lookup(var_name)
         if var_symbol is None:
             raise Exception(
-                "Error: Symbol(identifier) not found '%s'" % var_name
+                "Error: Symbol not found '%s'" % var_name
             )
         return VarSymbol(None, var_symbol.type.name, var_symbol.value)
 
     def visit_ConditionalVal(self, node):
-        lval = self.visit(node.left).value
-        rval = self.visit(node.right).value
+        lval = self.visit(node.left)
+        rval = self.visit(node.right)
+
+        if not isinstance(lval, bool):
+            lval = lval.value
+        if not isinstance(rval, bool):
+            rval = rval.value
+
         if node.op.type == EQ:
             return lval == rval
         elif node.op.type == NEQ:
@@ -332,7 +341,7 @@ class Interpreter(NodeVisitor):
         return self.visit(tree)
 
 
-def main():
+def main(path):
     # text = input("> ")
     # lexer = Lexer(text)
     # parser = Parser(lexer)
@@ -340,8 +349,7 @@ def main():
     # result = interpreter.interpret()
     # print(interpreter.global_scope)
 
-    filepath = input("Input code path:\n>")
-    with open(filepath, 'r') as f:
+    with open(path, 'r') as f:
         text = ""
         for line in f:
             text += line.strip()
@@ -351,4 +359,4 @@ def main():
         int.interpret()
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1])

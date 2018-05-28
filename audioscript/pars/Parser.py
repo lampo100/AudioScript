@@ -201,7 +201,7 @@ class Parser(object):
             self.error(token_type)
 
     def program(self):
-        """program = statement-list"""
+        """program = declarations, statement-list ;"""
         dec = self.declarations()
         stat_list = self.statement_list()
         node = Program(dec, stat_list)
@@ -522,9 +522,7 @@ class Parser(object):
         """
         self.eat(ASSIGN)
         token = self.current_token
-        if token.type == ID:
-            node = self.factorized()
-        elif self.current_token.type == NUMBER or self.current_token.type == LPAREN or self.current_token.type == MINUS or self.current_token.type == PLUS:
+        if self.current_token.type == NUMBER or self.current_token.type == LPAREN or self.current_token.type == MINUS or self.current_token.type == PLUS or self.current_token.type == ID:
             node = self.numeric_value()
         elif self.current_token.type == STRING:
             node = self.string_value()
